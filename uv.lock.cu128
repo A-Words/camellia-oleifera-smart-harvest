@@ -538,7 +538,7 @@ wheels = [
 ]
 
 [[package]]
-name = "lychee-ripe"
+name = "camellia-oleifera-smart-harvest"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

@@ -1,0 +1,338 @@
+openapi: "3.1.0"
+info:
+  title: Camellia Harvest Gateway API
+  version: "2.0.0"
+  description: >
+    External API served by the Go gateway for the camellia oleifera smart
+    harvest system. The current executable baseline exposes system health
+    checks and recognition endpoints, while decision and operations domains
+    are reserved for later expansion.
+
+servers:
+  - url: http://localhost:9000
+    description: Local gateway
+
+tags:
+  - name: system
+    description: System health and service readiness.
+  - name: recognition
+    description: Recognition requests proxied through the gateway.
+  - name: decision
+    description: Reserved for harvest path and work-order decisions.
+  - name: operations
+    description: Reserved for field operations and management workflows.
+
+paths:
+  /healthz:
+    get:
+      operationId: gatewayHealth
+      summary: Aggregated gateway and upstream health
+      tags: [system]
+      security: []
+      responses:
+        "200":
+          description: All systems healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayHealthResponse"
+        "503":
+          description: Upstream degraded or unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayHealthResponse"
+
+  /v1/health:
+    get:
+      operationId: upstreamHealth
+      summary: Upstream recognition service health
+      tags: [system]
+      security: []
+      responses:
+        "200":
+          description: Upstream health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /v1/recognition/image:
+    post:
+      operationId: recognizeImage
+      summary: Single image recognition
+      tags: [recognition]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Recognition result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageInferResponse"
+        "400":
+          description: Invalid image or request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden by policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Recognition service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/recognition/stream:
+    get:
+      operationId: recognizeStream
+      summary: WebSocket streaming recognition
+      tags: [recognition]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      description: >
+        WebSocket endpoint. Send binary frames (image bytes) to receive
+        per-frame recognition envelopes. Send text "close", "stop", or "eos"
+        to end the session. The server emits a final summary envelope when the
+        stream closes.
+      x-websocket-messages:
+        - direction: server-to-client
+          description: Per-frame recognition envelope.
+          schema:
+            $ref: "#/components/schemas/StreamFrameEnvelope"
+        - direction: server-to-client
+          description: Session summary envelope sent when stream closes.
+          schema:
+            $ref: "#/components/schemas/StreamSummaryEnvelope"
+        - direction: server-to-client
+          description: Non-fatal processing error envelope.
+          schema:
+            $ref: "#/components/schemas/StreamErrorEnvelope"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    RipenessLabel:
+      type: string
+      enum: [green, half, red, young]
+
+    HarvestSuggestion:
+      type: string
+      enum: [not_ready, partially_ready, ready, overripe_risk]
+
+    Detection:
+      type: object
+      required: [bbox, class_name, ripeness, confidence]
+      properties:
+        bbox:
+          type: array
+          items:
+            type: number
+          minItems: 4
+          maxItems: 4
+        class_name:
+          type: string
+          enum: [camellia_oleifera_fruit]
+        ripeness:
+          $ref: "#/components/schemas/RipenessLabel"
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        track_id:
+          type: integer
+          nullable: true
+
+    FrameSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+        green:
+          type: integer
+        half:
+          type: integer
+        red:
+          type: integer
+        young:
+          type: integer
+
+    FrameResult:
+      type: object
+      required: [frame_index, timestamp_ms, detections, frame_summary]
+      properties:
+        frame_index:
+          type: integer
+          minimum: 0
+        timestamp_ms:
+          type: integer
+          minimum: 0
+        detections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Detection"
+        frame_summary:
+          $ref: "#/components/schemas/FrameSummary"
+
+    RipenessRatio:
+      type: object
+      properties:
+        green:
+          type: number
+        half:
+          type: number
+        red:
+          type: number
+        young:
+          type: number
+
+    SessionSummary:
+      type: object
+      properties:
+        total_detected:
+          type: integer
+        ripeness_ratio:
+          $ref: "#/components/schemas/RipenessRatio"
+        harvest_suggestion:
+          $ref: "#/components/schemas/HarvestSuggestion"
+
+    ModelMeta:
+      type: object
+      required: [model_version, schema_version, adapter, loaded]
+      properties:
+        model_version:
+          type: string
+        schema_version:
+          type: string
+        adapter:
+          type: string
+        loaded:
+          type: boolean
+
+    HealthResponse:
+      type: object
+      required: [status, model]
+      properties:
+        status:
+          type: string
+        model:
+          $ref: "#/components/schemas/ModelMeta"
+
+    ImageInferResponse:
+      type: object
+      required: [model_version, schema_version, inference_ms, result]
+      properties:
+        model_version:
+          type: string
+        schema_version:
+          type: string
+        inference_ms:
+          type: number
+        result:
+          $ref: "#/components/schemas/FrameResult"
+
+    StreamFrameEnvelope:
+      type: object
+      required: [type, model_version, schema_version, result]
+      properties:
+        type:
+          type: string
+          enum: [frame]
+        model_version:
+          type: string
+        schema_version:
+          type: string
+        result:
+          $ref: "#/components/schemas/FrameResult"
+
+    StreamSummaryEnvelope:
+      type: object
+      required: [type, model_version, schema_version, summary]
+      properties:
+        type:
+          type: string
+          enum: [summary]
+        model_version:
+          type: string
+        schema_version:
+          type: string
+        summary:
+          $ref: "#/components/schemas/SessionSummary"
+
+    StreamErrorEnvelope:
+      type: object
+      required: [type, detail]
+      properties:
+        type:
+          type: string
+          enum: [error]
+        detail:
+          type: string
+
+    GatewayHealthResponse:
+      type: object
+      required: [status, gateway]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        gateway:
+          type: string
+        upstream:
+          $ref: "#/components/schemas/HealthResponse"
+        error:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

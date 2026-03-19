@@ -1,338 +1,126 @@
-# lychee-ripe
+# camellia-oleifera-smart-harvest
 
-荔枝目标检测与成熟度识别项目，提供：
+油茶智能采摘辅助系统仓库，当前基线围绕三层能力组织：
 
-- FastAPI 推理服务（`app/`）
-- Go 网关服务（`gateway/`）
-- Nuxt 前端可视化（`frontend/`，支持 Web/Desktop）
-- 训练与评估脚本（`training/`）
+- `recognition`：成熟果识别、成熟度判断、采摘建议基线
+- `decision`：采摘路径与作业顺序决策骨架
+- `operations`：地块、树木、进度与效率管理骨架
 
-成熟度类别映射（4 类）：
+当前可运行链路保持为：
 
-- `0 = green`
-- `1 = half`
-- `2 = red`
-- `3 = young`
+`clients/operator-console -> services/api-gateway -> services/recognition-api`
 
-共享常量来源：`shared/constants/ripeness.json`  
-接口契约来源：`shared/schemas/openapi.yaml`
+## 目录骨架
 
----
+- `clients/operator-console/`：Nuxt Web + Tauri Desktop 控制台
+- `services/recognition-api/`：FastAPI 识别服务
+- `services/api-gateway/`：Go 网关，统一入口、鉴权、限流、代理
+- `shared/contracts/`：对外契约，当前主文件为 `shared/contracts/openapi.yaml`
+- `shared/constants/`：共享常量，当前保留成熟度颜色映射
+- `shared/domain/`：共享领域词汇与分层元数据
+- `mlops/training/`：训练与评估脚本
+- `mlops/data/`：训练数据目录
+- `mlops/artifacts/`：模型与指标产物
+- `tooling/config/`：配置模板与本地配置
+- `tooling/scripts/`：启动、训练、评估、校验脚本
+- `tooling/docker/`：容器相关文件
+- `tests/`：跨服务集成与性能测试
 
-## 1. 系统架构与目录
+## 环境准备
 
-调用链（默认）：
+- Python `>= 3.11`
+- Go `1.25.6`
+- Bun
 
-`Web/Desktop Frontend -> Go Gateway -> FastAPI Inference`
-
-关键目录：
-
-- `app/`：推理服务与 API
-- `gateway/`：对外 API、鉴权、限流、观测
-- `frontend/`：前端可视化客户端（Nuxt + Tauri）
-- `training/`：训练与评估脚本
-- `tests/`：Python/Go/前端测试
-- `shared/`：共享常量与 OpenAPI 契约
-- `configs/`：配置模板与本地配置
-- `scripts/`：联调、训练、评估、校验脚本
-- `artifacts/`：模型、指标、日志产物
-
-关键路径约定：
-
-- 训练输出：`artifacts/models/`
-- 评估输出：`artifacts/metrics/`
-- 推理模型配置：`configs/model.yaml`
-- 网关配置：`configs/gateway.yaml`
-- OpenAPI 契约：`shared/schemas/openapi.yaml`
-
----
-
-## 2. 环境要求
-
-- Python `>= 3.11`（见 `pyproject.toml`）
-- Go（见 `gateway/go.mod`，当前为 `go 1.25.6`）
-- Bun（前端）
-- 可选：NVIDIA GPU + `nvidia-smi`（用于自动选择 `uv.lock`）
-
-推荐依赖流程（先锁文件再安装）：
-
-### Linux/macOS (sh)
+安装依赖：
 
 ```bash
-sh scripts/switch-lock.sh --target auto
 uv sync
-bun install --cwd frontend
+bun install --cwd clients/operator-console
 ```
 
-### Windows (PowerShell)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/switch-lock.ps1 -Target auto
-uv sync
-bun install --cwd frontend
-```
-
----
-
-## 3. 快速开始
-
-### 3.1 准备配置文件
-
-先从模板复制本地配置（本地 `.yaml` 不提交）：
-
-### Linux/macOS (sh)
+准备本地配置：
 
 ```bash
-cp configs/model.yaml.example configs/model.yaml
-cp configs/service.yaml.example configs/service.yaml
-cp configs/gateway.yaml.example configs/gateway.yaml
+cp tooling/config/recognition.yaml.example tooling/config/recognition.yaml
+cp tooling/config/service.yaml.example tooling/config/service.yaml
+cp tooling/config/gateway.yaml.example tooling/config/gateway.yaml
 ```
 
-### Windows (PowerShell)
+Windows PowerShell:
 
 ```powershell
-Copy-Item configs/model.yaml.example configs/model.yaml
-Copy-Item configs/service.yaml.example configs/service.yaml
-Copy-Item configs/gateway.yaml.example configs/gateway.yaml
+Copy-Item tooling/config/recognition.yaml.example tooling/config/recognition.yaml
+Copy-Item tooling/config/service.yaml.example tooling/config/service.yaml
+Copy-Item tooling/config/gateway.yaml.example tooling/config/gateway.yaml
 ```
 
-### 3.2 一键联调启动（推荐）
+## 启动
 
-### Linux/macOS (sh)
+分服务启动：
 
 ```bash
-sh scripts/stack.sh --app-host 127.0.0.1 --app-port 8000 --gateway-config configs/gateway.yaml --frontend-host 127.0.0.1 --frontend-port 3000
+uv run --directory services/recognition-api uvicorn main:app --reload --host 127.0.0.1 --port 8000
+go run ./services/api-gateway/cmd/gateway --config tooling/config/gateway.yaml
+bun run --cwd clients/operator-console dev -- --host 127.0.0.1 --port 3000
 ```
 
-### Windows (PowerShell)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/stack.ps1 -AppHost 127.0.0.1 -AppPort 8000 -GatewayConfig configs/gateway.yaml -FrontendHost 127.0.0.1 -FrontendPort 3000
-```
-
-默认端口：
-
-- app：`8000`
-- gateway：`9000`
-- frontend：`3000`
-
-### 3.3 分服务启动
-
-#### app（FastAPI）
+桌面端：
 
 ```bash
-sh scripts/app.sh --host 127.0.0.1 --port 8000
+bun run --cwd clients/operator-console tauri:dev
 ```
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/app.ps1 -Host 127.0.0.1 -Port 8000
-```
-
-#### gateway（Go）
+脚本入口：
 
 ```bash
-sh scripts/gateway.sh --config configs/gateway.yaml
+sh tooling/scripts/app.sh --host 127.0.0.1 --port 8000
+sh tooling/scripts/gateway.sh --config tooling/config/gateway.yaml
+sh tooling/scripts/frontend.sh --host 127.0.0.1 --port 3000
+sh tooling/scripts/stack.sh --app-host 127.0.0.1 --app-port 8000 --gateway-config tooling/config/gateway.yaml --frontend-host 127.0.0.1 --frontend-port 3000
 ```
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/gateway.ps1 -Config configs/gateway.yaml
-```
+## 当前公开接口
 
-#### frontend（Web）
+当前契约只保留最小可运行基线：
+
+- `GET /healthz`
+- `GET /v1/health`
+- `POST /v1/recognition/image`
+- `GET /v1/recognition/stream`（WebSocket）
+
+契约文件：`shared/contracts/openapi.yaml`
+
+## 训练与评估
 
 ```bash
-sh scripts/frontend.sh --host 127.0.0.1 --port 3000
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/frontend.ps1 -Host 127.0.0.1 -Port 3000
-```
-
-#### frontend（Desktop / Tauri）
-
-```bash
-sh scripts/desktop.sh
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/desktop.ps1
-```
-
----
-
-## 4. 配置说明
-
-### `configs/model.yaml`
-
-- `model_path`：在线推理模型路径（为空时使用默认模型加载行为）
-- `conf_threshold`：检测置信度阈值
-- `nms_iou`：NMS IoU 阈值
-- `device`：`auto` / `cpu` / `cuda`（或 CUDA 设备编号）
-
-### `configs/service.yaml`
-
-- `app_name`：服务名
-- `schema_version`：响应协议版本
-- `max_upload_mb`：单图接口上传大小限制（MB）
-
-### `configs/gateway.yaml`
-
-- `server`：网关监听地址与读写超时
-- `upstream.base_url`：上游 FastAPI 地址（默认 `http://127.0.0.1:8000`）
-- `db.driver`：数据库驱动（`sqlite` 或 `postgres`）
-- `db.dsn`：连接串（sqlite 文件路径或 postgres DSN）
-- `db.max_open_conns` / `db.max_idle_conns` / `db.conn_max_lifetime_s`：连接池参数
-- `db.sqlite`：SQLite 参数（`journal_mode`、`busy_timeout_ms`）
-- `db.postgres`：PostgreSQL 参数（`ssl_mode`、`schema`）
-- `chain`：EVM 锚定参数（`enabled`、`rpc_url`、`chain_id`、`contract_address`、`private_key`、`tx_timeout_s`、`receipt_poll_interval_ms`）
-- `auth`：API Key 开关与密钥列表
-- `rate_limit`：限流参数
-- `cors`：跨域策略
-- `logging`：日志级别与格式
-
-PostgreSQL 配置示例：
-
-```yaml
-db:
-  driver: "postgres"
-  dsn: "postgres://postgres:postgres@127.0.0.1:5432/lychee_ripe?sslmode=disable"
-  max_open_conns: 10
-  max_idle_conns: 5
-  conn_max_lifetime_s: 300
-  postgres:
-    ssl_mode: "disable"
-    schema: "public"
-```
-
-EVM 链配置示例（本地测试链）：
-
-```yaml
-chain:
-  enabled: true
-  rpc_url: "http://127.0.0.1:8545"
-  chain_id: "31337"
-  contract_address: "0x1234567890abcdef1234567890abcdef12345678"
-  private_key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-  tx_timeout_s: 30
-  receipt_poll_interval_ms: 500
-```
-
-说明：`private_key` 仅用于本地开发测试链。生产环境应替换为专用密钥管理方案，避免明文配置。
-
-### 环境变量入口
-
-- `LYCHEE_MODEL_CONFIG`（app 模型配置路径）
-- `LYCHEE_SERVICE_CONFIG`（app 服务配置路径）
-- `LYCHEE_GATEWAY_CONFIG`（gateway 配置路径）
-
-前端网关地址默认在 `frontend/nuxt.config.ts` 中为 `http://127.0.0.1:9000`，可通过 Nuxt 公共运行时配置覆盖（例如 `NUXT_PUBLIC_GATEWAY_BASE`）。
-
-前端路由：
-
-- 手动输入页：`/trace`
-- 二维码落地页：`/trace/{trace_code}`
-- 公众模式：直接访问 `/trace` 或 `/trace/{trace_code}` 时不显示管理顶栏
-- 识别建批页：`/batch/create`（管理员使用，默认依赖网关 `auth=false` 联调）
-- 数据看板页：`/dashboard`（管理员使用，默认依赖网关 `auth=false` 联调）
-- 内部来源返回：管理员入口（含顶栏“溯源查询”）会携带 `from`（如 `/trace?from=index`、`/trace/{trace_code}?from=dashboard`），用于保留顶栏并在详情页一键返回来源页面
-
----
-
-## 5. 训练与评估
-
-### 5.1 训练
-
-```bash
-sh scripts/train.sh --data data/lichi/data.yaml --name lychee_v1
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/train.ps1 -Data data/lichi/data.yaml -Name lychee_v1
-```
-
-可选导出 ONNX：
-
-```bash
-sh scripts/train.sh --data data/lichi/data.yaml --name lychee_v1 --export-onnx
-```
-
-### 5.2 评估
-
-```bash
-sh scripts/eval.sh --data data/lichi/data.yaml --exp lychee_v1
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/eval.ps1 -Data data/lichi/data.yaml -Exp lychee_v1
+sh tooling/scripts/train.sh --data mlops/data/camellia-oleifera/data.yaml --name camellia_v1
+sh tooling/scripts/eval.sh --data mlops/data/camellia-oleifera/data.yaml --exp camellia_v1
 ```
 
 默认产物：
 
-- checkpoint：`artifacts/models/<exp>/weights/best.pt`
-- 指标：`artifacts/metrics/<exp>-eval_metrics.json`
+- 模型：`mlops/artifacts/models/`
+- 指标：`mlops/artifacts/metrics/`
 
----
-
-## 6. 质量检查与提交流程
-
-一键检查：
-
-```bash
-sh scripts/verify.sh
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/verify.ps1
-```
-
-分层检查：
+## 质量检查
 
 ```bash
 uv run pytest -q
-go test ./gateway/...
-bun run --cwd frontend typecheck
-bun run --cwd frontend test
-bun run --cwd frontend generate
+go test ./services/api-gateway/...
+bun run --cwd clients/operator-console typecheck
+bun run --cwd clients/operator-console test
+bun run --cwd clients/operator-console generate
 ```
 
-提交前检查清单（精简版）：
+或执行：
 
-- 命令示例是否可运行，路径是否正确
-- 未引入硬编码绝对路径
-- `configs/*.yaml.example` 可用性不被破坏
-- 类别映射保持 `green/half/red/young` 一致
-- `shared/schemas/openapi.yaml` 与 `app/`、`gateway/`、`frontend/` 字段一致
-- 前端调用路径保持 `frontend -> gateway -> app`
-- 前端颜色与标签映射与 `shared/constants/ripeness.json` 一致
-- 摄像头切换能力可用（空闲/识别中切换、拔插刷新、上次选择恢复）
+```bash
+sh tooling/scripts/verify.sh
+```
 
----
+## 当前状态说明
 
-## 7. 已知限制
-
-- 当前 README 不提供 Docker 作为可执行主流程。
-- 原因：`docker/Dockerfile` 依赖的 `requirements.txt` 当前未在仓库中提供，按现状构建可能失败。
-- 待容器构建链路修复后，再补充 Docker 章节。
-
----
-
-## 8. 常见问题（FAQ）
-
-### Q1：为什么前端不能直连 `app/`？
-
-项目约定前端只调用 `gateway/`。网关负责统一鉴权、限流、日志与跨域策略，避免把这些能力散落在前端或推理服务中。
-
-### Q2：为什么 `/v1/health` 可能返回 `degraded`？
-
-服务启动时如果模型加载/预热失败，FastAPI 会保持进程可用并暴露健康信息。此时可见 `status=degraded`，便于观测与排障。
-
-### Q3：摄像头拔插后前端如何处理？
-
-前端会监听设备变化并刷新列表，支持空闲态与识别中切换，并保留上次选择设备。当前摄像头不可用时会尝试回退到可用设备。
-
----
-
-## 9. 参考与数据
-
-- 数据集引用：Zhiqing, Zhao (2025), "lichi-maturity", Mendeley Data, V1, doi: `10.17632/c3rk9gv4w9.1`
-- 本仓库不提交原始数据与大模型权重（遵循 `.gitignore`）
+- 识别链路已迁到新目录和新路由。
+- `decision` 与 `operations` 当前提供页面和网关目录骨架，后续迭代补充领域实现。
+- 旧的 `batch / trace / dashboard` 语义已退出主线，不再作为现行接口和页面。

@@ -1,25 +1,25 @@
 services:
-  lychee-ripe:
+  recognition-api:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: tooling/docker/Dockerfile
     ports:
       - "8000:8000"
     environment:
-      - LYCHEE_MODEL_CONFIG=configs/model.yaml
-      - LYCHEE_SERVICE_CONFIG=configs/service.yaml
+      - CAMELLIA_RECOGNITION_CONFIG=/workspace/tooling/config/recognition.yaml
+      - CAMELLIA_SERVICE_CONFIG=/workspace/tooling/config/service.yaml
     volumes:
-      - ./weights:/app/weights
+      - ./mlops/artifacts:/workspace/mlops/artifacts
 
   gateway:
     build:
       context: .
-      dockerfile: docker/Dockerfile.gateway
+      dockerfile: tooling/docker/Dockerfile.gateway
     ports:
       - "9000:9000"
     environment:
-      - LYCHEE_GATEWAY_CONFIG=/etc/gateway/gateway.yaml
+      - CAMELLIA_GATEWAY_CONFIG=/etc/gateway/gateway.yaml
     volumes:
-      - ./configs:/etc/gateway:ro
+      - ./tooling/config:/etc/gateway:ro
     depends_on:
-      - lychee-ripe
+      - recognition-api

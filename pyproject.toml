@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lychee-ripe"
+name = "camellia-oleifera-smart-harvest"
 version = "0.1.0"
-description = "Lychee detection and ripeness API service"
+description = "Camellia oleifera recognition service"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -30,9 +30,9 @@ default-groups = ["dev"]
 package = false
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = [".", "services/recognition-api"]
 addopts = "-q"
-testpaths = ["tests"]
+testpaths = ["services/recognition-api/tests", "tests"]
 markers = [
   "perf: performance tests"
 ]

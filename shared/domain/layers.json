@@ -1,0 +1,19 @@
+{
+  "layers": [
+    {
+      "key": "recognition",
+      "label": "识别",
+      "description": "负责果实位置、成熟度和采摘建议基线。"
+    },
+    {
+      "key": "decision",
+      "label": "决策",
+      "description": "负责树优先级、区域优先级、采摘顺序和跳过建议。"
+    },
+    {
+      "key": "operations",
+      "label": "作业",
+      "description": "负责地块、树木、进度、效率和产量管理。"
+    }
+  ]
+}
