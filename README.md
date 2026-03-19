@@ -54,6 +54,10 @@ Copy-Item tooling/config/service.yaml.example tooling/config/service.yaml
 Copy-Item tooling/config/gateway.yaml.example tooling/config/gateway.yaml
 ```
 
+说明：
+
+- `tooling/config/recognition.yaml` 中的相对 `model_path` 现在会优先按配置文件目录解析，再回退到仓库根目录，因此从仓库根目录或 `services/recognition-api` 目录启动都能正确找到模型。
+
 ## 启动
 
 分服务启动：
@@ -62,6 +66,12 @@ Copy-Item tooling/config/gateway.yaml.example tooling/config/gateway.yaml
 uv run --directory services/recognition-api uvicorn main:app --reload --host 127.0.0.1 --port 8000
 go run ./services/api-gateway/cmd/gateway --config tooling/config/gateway.yaml
 bun run --cwd clients/operator-console dev -- --host 127.0.0.1 --port 3000
+```
+
+也支持在 `services/recognition-api` 目录内直接运行：
+
+```bash
+uv run uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 桌面端：

@@ -216,6 +216,9 @@ components:
           type: string
         loaded:
           type: boolean
+        load_error:
+          type: string
+          nullable: true
 
     HealthResponse:
       type: object

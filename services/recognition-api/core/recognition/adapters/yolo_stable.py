@@ -15,6 +15,7 @@ class YoloStableAdapter(DetectorAdapter):
         self.cfg = cfg
         self.name = cfg.yolo_version
         self.default_class_name = "camellia_oleifera_fruit"
+        self.load_error = None
         self._model = None
         self._loaded = False
         self._device, device_warning = resolve_torch_device(cfg.device)
@@ -44,10 +45,22 @@ class YoloStableAdapter(DetectorAdapter):
         try:
             from ultralytics import YOLO
         except Exception as exc:  # pragma: no cover
-            raise RuntimeError("Ultralytics is required for YoloStableAdapter") from exc
+            self._mark_load_failed("Ultralytics is required for YoloStableAdapter")
+            raise RuntimeError(self.load_error) from exc
 
-        self._model = YOLO(self._resolve_model_source())
+        try:
+            self._model = YOLO(self._resolve_model_source())
+        except Exception as exc:
+            self._mark_load_failed(str(exc))
+            raise
+
         self._loaded = True
+        self.load_error = None
+
+    def _mark_load_failed(self, reason: str) -> None:
+        self._model = None
+        self._loaded = False
+        self.load_error = reason
 
     def warmup(self) -> None:
         if not self.loaded:
@@ -57,7 +70,7 @@ class YoloStableAdapter(DetectorAdapter):
 
     def predict(self, frame: np.ndarray) -> Sequence[RawDetection]:
         if not self.loaded or self._model is None:
-            raise RuntimeError("Model is not loaded")
+            raise RuntimeError(self.load_error or "Model is not loaded")
 
         results = self._model.predict(
             source=frame,

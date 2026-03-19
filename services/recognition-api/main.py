@@ -51,6 +51,17 @@ def _ensure_config_file(path: Path, env_var: str) -> None:
     )
 
 
+def _record_detector_load_error(detector: object, exc: Exception) -> None:
+    message = str(exc).strip() or exc.__class__.__name__
+    if hasattr(detector, "load_error"):
+        setattr(detector, "load_error", message)
+    if hasattr(detector, "_loaded"):
+        setattr(detector, "_loaded", False)
+    if hasattr(detector, "_model"):
+        setattr(detector, "_model", None)
+    print(f"[model-load] {message}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     model_cfg_path = _resolve_config_path(
@@ -69,9 +80,9 @@ async def lifespan(app: FastAPI):
     try:
         detector.load()
         detector.warmup()
-    except Exception:
+    except Exception as exc:
         # Keep service booted in degraded mode for health visibility.
-        pass
+        _record_detector_load_error(detector, exc)
 
     app.state.service_cfg = service_cfg
     app.state.pipeline = InferencePipeline(

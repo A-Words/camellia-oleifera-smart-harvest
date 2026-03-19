@@ -12,6 +12,7 @@ except Exception:  # pragma: no cover
 
 DEFAULT_SCHEMA_VERSION = "v1"
 _CUDA_DEVICE_PATTERN = re.compile(r"^\d+(,\d+)*$")
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class ModelConfig(BaseModel):
@@ -116,8 +117,31 @@ def _load_yaml(path: Path) -> dict:
     return _parse_simple_yaml(text)
 
 
+def _resolve_model_path(raw_path: str, config_path: Path) -> str:
+    normalized = (raw_path or "").strip()
+    if not normalized:
+        return ""
+
+    candidate = Path(normalized).expanduser()
+    if candidate.is_absolute():
+        return str(candidate)
+
+    config_relative = (config_path.parent / candidate).resolve()
+    if config_relative.exists():
+        return str(config_relative)
+
+    repo_relative = (_REPO_ROOT / candidate).resolve()
+    if repo_relative.exists():
+        return str(repo_relative)
+
+    return str(repo_relative)
+
+
 def load_model_config(path: Path) -> ModelConfig:
-    return ModelConfig.model_validate(_load_yaml(path))
+    data = _load_yaml(path)
+    if "model_path" in data and isinstance(data["model_path"], str):
+        data["model_path"] = _resolve_model_path(data["model_path"], path)
+    return ModelConfig.model_validate(data)
 
 
 def load_service_config(path: Path) -> ServiceConfig:

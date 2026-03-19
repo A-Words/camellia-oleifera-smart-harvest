@@ -43,6 +43,7 @@ class InferencePipeline:
             schema_version=self.schema_version,
             adapter=self.detector.name,
             loaded=self.detector.loaded,
+            load_error=getattr(self.detector, "load_error", None),
         )
 
     def create_stream_session(self) -> StreamSession:
@@ -62,7 +63,7 @@ class InferencePipeline:
         if frame.ndim != 3:
             raise ValueError("Expected BGR frame with shape [H, W, C]")
         if not self.detector.loaded:
-            raise RuntimeError("Detector is not loaded")
+            raise RuntimeError(getattr(self.detector, "load_error", None) or "Detector is not loaded")
 
         raw_dets = list(self.detector.predict(frame))
         height, width = frame.shape[:2]

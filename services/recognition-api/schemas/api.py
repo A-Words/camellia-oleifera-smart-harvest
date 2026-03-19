@@ -17,6 +17,7 @@ class CurrentModelResponse(BaseModel):
     schema_version: str
     adapter: str
     loaded: bool
+    load_error: str | None = None
 
 
 class StreamFrameEnvelope(BaseModel):

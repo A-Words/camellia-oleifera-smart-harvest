@@ -32,3 +32,4 @@ class ModelMeta(BaseModel):
     schema_version: str
     adapter: str
     loaded: bool
+    load_error: str | None = None

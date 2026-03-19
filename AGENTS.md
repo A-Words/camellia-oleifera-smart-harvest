@@ -49,11 +49,16 @@
 - `tooling/config/recognition.yaml.example -> tooling/config/recognition.yaml`
 - `tooling/config/service.yaml.example -> tooling/config/service.yaml`
 - `tooling/config/gateway.yaml.example -> tooling/config/gateway.yaml`
+- `tooling/config/recognition.yaml` 中相对 `model_path` 的解析顺序固定为：
+  - 绝对路径原样使用
+  - 相对配置文件目录
+  - 相对仓库根目录
 
 ### 4.3 启动服务
 
 - recognition-api:
   - `uv run --directory services/recognition-api uvicorn main:app --reload --host 127.0.0.1 --port 8000`
+  - 或在 `services/recognition-api` 目录中执行：`uv run uvicorn main:app --reload --host 127.0.0.1 --port 8000`
 - api-gateway:
   - `go run ./services/api-gateway/cmd/gateway --config tooling/config/gateway.yaml`
 - operator-console:

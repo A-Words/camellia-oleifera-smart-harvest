@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from main import _ensure_config_file, _resolve_config_path
+from settings import load_model_config
 
 
 def test_resolve_config_path_finds_repo_relative_file_from_service_cwd(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -26,3 +27,28 @@ def test_ensure_config_file_raises_with_example_hint(tmp_path: Path) -> None:
     assert "Missing config file" in msg
     assert "CAMELLIA_RECOGNITION_CONFIG" in msg
     assert "recognition.yaml.example" in msg
+
+
+def test_repo_relative_model_path_is_resolved_from_service_cwd(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(Path(__file__).resolve().parents[2])
+
+    cfg_path = tmp_path / "recognition.yaml"
+    cfg_path.write_text(
+        '\n'.join(
+            [
+                'yolo_version: "yolo26n"',
+                'model_version: "test"',
+                'model_path: "yolo26n.pt"',
+                'device: "cpu"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    cfg = load_model_config(cfg_path)
+
+    model_path = Path(cfg.model_path)
+    assert model_path.is_absolute()
+    assert model_path.exists()

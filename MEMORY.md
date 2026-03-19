@@ -263,3 +263,30 @@
 
 - 训练脚本与评估脚本已补齐仓库根目录执行时的 `settings` 导入路径。
 - `bun generate` 仍有 Google Fonts 元数据拉取超时告警与前端 chunk 偏大告警，但不影响本轮检测基线替换与产物生成。
+
+## 2026-03-20 识别服务模型路径与诊断修复记录
+
+本轮已修复 `Detector is not loaded` 的一类高频启动问题：此前 `tooling/config/recognition.yaml` 中的 `model_path` 仅在仓库根目录启动时有效，从 `services/recognition-api` 目录启动会因为相对路径失效而找不到权重文件。
+
+### 当前模型路径解析规则
+
+- `model_path` 为绝对路径时，直接使用。
+- `model_path` 为相对路径时，先按配置文件所在目录解析。
+- 若配置文件目录下不存在，再按仓库根目录解析。
+
+因此当前以下两种启动方式都应可加载同一份模型：
+
+- 在仓库根目录执行：`uv run --directory services/recognition-api uvicorn main:app ...`
+- 在 `services/recognition-api` 目录执行：`uv run uvicorn main:app ...`
+
+### 当前诊断行为
+
+- 识别服务仍保持“模型加载失败时服务可降级启动”的策略。
+- 但不再静默吞掉异常，当前会将加载失败原因记录到 `ModelMeta.load_error`。
+- `/v1/health` 与 `/v1/recognition/current` 现在都会返回 `load_error`（如有）。
+- `/v1/recognition/image` 与 `/v1/recognition/stream` 在 detector 未加载时会直接返回具体错误原因，而不再只返回通用的 `Detector is not loaded`。
+
+### 本次校验目标
+
+- 验证 repo root 与 `services/recognition-api` 两种 cwd 下，repo 相对 `model_path` 都能解析到正确权重。
+- 验证健康检查与推理接口在模型未加载时可返回明确诊断信息。

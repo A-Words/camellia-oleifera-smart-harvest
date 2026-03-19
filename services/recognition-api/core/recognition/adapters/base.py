@@ -17,6 +17,7 @@ class RawDetection:
 class DetectorAdapter(ABC):
     name: str = "base"
     default_class_name: str = "camellia_oleifera_fruit"
+    load_error: str | None = None
 
     @abstractmethod
     def load(self) -> None:
