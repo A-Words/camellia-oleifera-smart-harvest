@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from core.recognition.adapters.base import DetectorAdapter, RawDetection
+from core.recognition.adapters.base import DetectorAdapter
 from core.recognition.aggregator import SessionAggregator
 from core.recognition.tracker import ByteTrackManager
 from schemas.common import Detection, FrameResult, ModelMeta
@@ -73,26 +73,23 @@ class InferencePipeline:
 
         track_map = {id(t.det): t.track_id for t in tracked}
         detections: list[Detection] = []
-        ripeness_list: list[str] = []
         track_ids: list[int | None] = []
 
         for det in raw_dets:
-            ripeness = self.detector.ripeness_from_class_id(det.class_id)
             sanitized_bbox = _sanitize_bbox(det.bbox, width, height)
             track_id = track_map.get(id(det)) if use_track else None
             detections.append(
                 Detection(
                     bbox=sanitized_bbox,
-                    ripeness=ripeness,
+                    class_name=self.detector.class_name_from_class_id(det.class_id),
                     confidence=det.confidence,
                     track_id=track_id,
                 )
             )
-            ripeness_list.append(ripeness)
             track_ids.append(track_id)
 
-        session.aggregator.update_session(ripeness_list, track_ids)
-        frame_summary = session.aggregator.frame_summary(ripeness_list)
+        session.aggregator.update_session(track_ids)
+        frame_summary = session.aggregator.frame_summary(len(detections))
 
         result = FrameResult(
             frame_index=session.frame_index,

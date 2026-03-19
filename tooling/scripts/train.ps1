@@ -7,7 +7,7 @@ param(
     [int]$Imgsz = 640,
     [int]$Batch = 16,
     [string]$Device = "cpu",
-    [string]$Name = "camellia_v1",
+    [string]$Name = "camellia_detection_v1",
     [switch]$ExportOnnx
 )
 

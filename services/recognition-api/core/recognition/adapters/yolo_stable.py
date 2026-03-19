@@ -14,16 +14,14 @@ class YoloStableAdapter(DetectorAdapter):
     def __init__(self, cfg: ModelConfig) -> None:
         self.cfg = cfg
         self.name = cfg.yolo_version
+        self.default_class_name = "camellia_oleifera_fruit"
         self._model = None
         self._loaded = False
         self._device, device_warning = resolve_torch_device(cfg.device)
         if device_warning:
             print(f"[device] {device_warning}")
         self._class_map = {
-            0: "green",
-            1: "half",
-            2: "red",
-            3: "young",
+            0: self.default_class_name,
         }
 
     @property
@@ -86,7 +84,5 @@ class YoloStableAdapter(DetectorAdapter):
                 )
         return detections
 
-    def ripeness_from_class_id(self, class_id: int) -> str:
-        if class_id not in self._class_map:
-            return "green"
-        return self._class_map[class_id]
+    def class_name_from_class_id(self, class_id: int) -> str:
+        return self._class_map.get(class_id, self.default_class_name)

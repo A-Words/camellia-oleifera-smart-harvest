@@ -29,8 +29,8 @@ class FakeDetector(DetectorAdapter):
     def predict(self, frame: np.ndarray):
         return [RawDetection(bbox=(5, 5, 30, 30), class_id=2, confidence=0.8)]
 
-    def ripeness_from_class_id(self, class_id: int) -> str:
-        return 'red'
+    def class_name_from_class_id(self, class_id: int) -> str:
+        return 'camellia_oleifera_fruit'
 
 
 def test_health_and_image_infer(monkeypatch) -> None:
@@ -50,4 +50,5 @@ def test_health_and_image_infer(monkeypatch) -> None:
         resp = client.post('/v1/recognition/image', files={'file': ('x.jpg', b'raw-bytes', 'image/jpeg')})
         assert resp.status_code == 200
         body = resp.json()
-        assert body['result']['frame_summary']['red'] == 1
+        assert body['result']['frame_summary']['total'] == 1
+        assert body['result']['detections'][0]['class_name'] == 'camellia_oleifera_fruit'

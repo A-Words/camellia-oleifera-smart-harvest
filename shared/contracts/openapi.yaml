@@ -152,17 +152,9 @@ components:
       scheme: bearer
 
   schemas:
-    RipenessLabel:
-      type: string
-      enum: [green, half, red, young]
-
-    HarvestSuggestion:
-      type: string
-      enum: [not_ready, partially_ready, ready, overripe_risk]
-
     Detection:
       type: object
-      required: [bbox, class_name, ripeness, confidence]
+      required: [bbox, class_name, confidence]
       properties:
         bbox:
           type: array
@@ -173,8 +165,6 @@ components:
         class_name:
           type: string
           enum: [camellia_oleifera_fruit]
-        ripeness:
-          $ref: "#/components/schemas/RipenessLabel"
         confidence:
           type: number
           minimum: 0
@@ -185,16 +175,9 @@ components:
 
     FrameSummary:
       type: object
+      required: [total]
       properties:
         total:
-          type: integer
-        green:
-          type: integer
-        half:
-          type: integer
-        red:
-          type: integer
-        young:
           type: integer
 
     FrameResult:
@@ -214,27 +197,12 @@ components:
         frame_summary:
           $ref: "#/components/schemas/FrameSummary"
 
-    RipenessRatio:
-      type: object
-      properties:
-        green:
-          type: number
-        half:
-          type: number
-        red:
-          type: number
-        young:
-          type: number
-
     SessionSummary:
       type: object
+      required: [total_detected]
       properties:
         total_detected:
           type: integer
-        ripeness_ratio:
-          $ref: "#/components/schemas/RipenessRatio"
-        harvest_suggestion:
-          $ref: "#/components/schemas/HarvestSuggestion"
 
     ModelMeta:
       type: object

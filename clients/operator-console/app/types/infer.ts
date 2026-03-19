@@ -1,21 +1,12 @@
-import type { RipenessLabel } from '~/types/recognition'
-
-export type HarvestSuggestion = 'not_ready' | 'partially_ready' | 'ready' | 'overripe_risk'
-
 export interface Detection {
   bbox: [number, number, number, number]
   class_name: 'camellia_oleifera_fruit'
-  ripeness: RipenessLabel
   confidence: number
   track_id: number | null
 }
 
 export interface FrameSummary {
   total: number
-  green: number
-  half: number
-  red: number
-  young: number
 }
 
 export interface FrameResult {
@@ -25,17 +16,8 @@ export interface FrameResult {
   frame_summary: FrameSummary
 }
 
-export interface RipenessRatio {
-  green: number
-  half: number
-  red: number
-  young: number
-}
-
 export interface SessionSummary {
   total_detected: number
-  ripeness_ratio: RipenessRatio
-  harvest_suggestion: HarvestSuggestion
 }
 
 export interface StreamFrameEnvelope {

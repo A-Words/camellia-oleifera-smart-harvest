@@ -7,7 +7,7 @@ EPOCHS="100"
 IMGSZ="640"
 BATCH="16"
 DEVICE="cpu"
-NAME="camellia_v1"
+NAME="camellia_detection_v1"
 EXPORT_ONNX="0"
 
 while [ "$#" -gt 0 ]; do

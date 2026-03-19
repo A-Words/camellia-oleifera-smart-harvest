@@ -10,7 +10,7 @@
 
 - 仓库当前唯一有效目标：油茶智能采摘辅助系统。
 - 三层能力基线：
-  - `recognition`：单果识别、成熟度判断、采摘建议基线
+  - `recognition`：单果检测基线，当前主线输出油茶果目标框与数量
   - `decision`：采摘路径与作业顺序决策
   - `operations`：作业管理与数据平台
 - 默认调用链：
@@ -31,7 +31,6 @@
   - `services/recognition-api/`：FastAPI 识别服务
   - `services/api-gateway/`：Go 网关
   - `shared/contracts/openapi.yaml`：对外契约
-  - `shared/constants/ripeness.json`：成熟度颜色与标签映射
   - `shared/domain/`：共享领域词汇
   - `tooling/config/`：配置模板与本地配置
   - `tooling/scripts/`：脚本入口
@@ -65,9 +64,9 @@
 ### 4.4 训练与评估
 
 - 训练：
-  - `uv run python mlops/training/train.py --data mlops/data/camellia-oleifera/data.yaml --model yolo26n.pt --project mlops/artifacts/models --name camellia_v1`
+  - `uv run python mlops/training/train.py --data mlops/data/camellia-oleifera/data.yaml --model yolo26n.pt --project mlops/artifacts/models --name camellia_detection_v1`
 - 评估：
-  - `uv run python mlops/training/eval.py --model mlops/artifacts/models/camellia_v1/weights/best.pt --data mlops/data/camellia-oleifera/data.yaml --output mlops/artifacts/metrics/camellia_v1-eval_metrics.json`
+  - `uv run python mlops/training/eval.py --model mlops/artifacts/models/camellia_detection_v1/weights/best.pt --data mlops/data/camellia-oleifera/data.yaml --output mlops/artifacts/metrics/camellia_detection_v1-eval_metrics.json`
 
 ### 4.5 校验与测试
 

@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { HARVEST_SUGGESTION_META } from '~/constants/harvest-suggestion'
 import type { FrameResult, SessionSummary } from '~/types/infer'
 import type { SessionAggregateSummary } from '~/utils/session-aggregator'
-import { toRecognitionSummary } from '~/utils/session-aggregator'
 
 const props = defineProps<{
   summary: SessionAggregateSummary
@@ -10,13 +8,6 @@ const props = defineProps<{
   serverSummary: SessionSummary | null
   isRecognizing: boolean
 }>()
-
-const suggestionMeta = computed(() => HARVEST_SUGGESTION_META[props.summary.harvest_suggestion])
-const recognitionSummary = computed(() => toRecognitionSummary(props.summary))
-
-function ratioText(value: number): string {
-  return `${(value * 100).toFixed(1)}%`
-}
 </script>
 
 <template>
@@ -39,22 +30,17 @@ function ratioText(value: number): string {
 
     <div class="space-y-4">
       <UAlert
-        :color="suggestionMeta.color"
+        color="neutral"
         variant="subtle"
         icon="i-lucide-leaf"
-        :title="suggestionMeta.label"
+        title="检测基线说明"
       >
         <template #description>
           <p class="text-sm">
-            {{ suggestionMeta.description }}
-          </p>
-          <p class="mt-1 text-sm text-muted">
-            未成熟占比 {{ ratioText(summary.unripe_ratio) }}
+            当前主线只输出油茶果检测结果，成熟度判断与采摘建议将在后续具备对应数据后恢复。
           </p>
         </template>
       </UAlert>
-
-      <RecognitionRipenessSummaryCards :summary="recognitionSummary" />
 
       <UCard
         v-if="currentFrame"
@@ -64,12 +50,9 @@ function ratioText(value: number): string {
         <p class="text-xs text-muted">
           当前帧汇总（frame #{{ currentFrame.frame_index }})
         </p>
-        <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-5">
+        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
           <p>总数：{{ currentFrame.frame_summary.total }}</p>
-          <p>青果：{{ currentFrame.frame_summary.green }}</p>
-          <p>半熟：{{ currentFrame.frame_summary.half }}</p>
-          <p>红果：{{ currentFrame.frame_summary.red }}</p>
-          <p>嫩果：{{ currentFrame.frame_summary.young }}</p>
+          <p>当前帧目标框：{{ currentFrame.detections.length }}</p>
         </div>
       </UCard>
 

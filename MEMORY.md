@@ -202,3 +202,64 @@
 
 - `generate` 已成功完成并产出静态结果。
 - 生成过程中出现过 Google Fonts 元数据拉取超时告警，以及前端 chunk 偏大告警，但不影响当前产物生成和本轮结构迁移验收。
+
+## 2026-03-19 油茶果检测基线替换记录
+
+本轮已将仓库中的活跃识别基线从旧的四类成熟度识别切换为单类油茶果检测基线，当前主线输出不再包含 `ripeness`、`ripeness_ratio`、`harvest_suggestion` 等成熟度字段，识别链路当前只承诺：
+
+- `Detection`: `bbox`、`class_name`、`confidence`、`track_id`
+- `FrameSummary`: `total`
+- `SessionSummary`: `total_detected`
+
+### 数据集与目录基线
+
+- 根目录散放的 `camellia oleifera fruit Yolo/` 已迁入 `mlops/data/raw/camellia-oleifera-fruit-yolo/` 作为原始数据源。
+- 旧的 `mlops/data/camellia-oleifera/` 成熟度数据已移入 `mlops/data/raw/camellia-oleifera-ripeness-legacy/` 作为历史基线保留。
+- 当前活跃训练数据位于 `mlops/data/camellia-oleifera/`，采用：
+  - `images/train|val|test`
+  - `labels/train|val|test`
+- 已过滤每个 split 下多余的 `classes.txt`，当前数据完整性为：
+  - `train`: `1012 images / 1012 labels`
+  - `val`: `337 images / 337 labels`
+  - `test`: `328 images / 328 labels`
+- 当前 `data.yaml` 只保留单类：
+  - `0: camellia_oleifera_fruit`
+
+### 数据源引用
+
+- Zhou, Lei; Jin, Shouxiang; Wang, Jinpeng; Zhang, Huichun; Shi, Minghong; Zhou, Hongping (2024), “Camellia oleifera fruit detection dataset”, Mendeley Data, V1, doi: `10.17632/4s9xjc6zjf.1`
+
+### 训练与评估结果
+
+- 训练实验名已固定为 `camellia_detection_v1`。
+- 本轮先发现本地 `uv` 环境是 `torch-2.10.0+cpu`，随后使用仓库内现成脚本切换到 `uv.lock.cu128` 并同步为 `torch-2.10.0+cu128`。
+- CUDA 训练设备已确认可用：
+  - `NVIDIA GeForce RTX 4060 Laptop GPU`
+- 训练产物当前位于：
+  - `mlops/artifacts/models/camellia_detection_v1/weights/best.pt`
+- 本轮评估输出为：
+  - `mlops/artifacts/metrics/camellia_detection_v1-eval_metrics.json`
+- 当前验证指标（val）为：
+  - `mAP50 = 0.9601604156627621`
+  - `mAP50_95 = 0.7473247796825229`
+
+### 工程与文档同步
+
+- `services/recognition-api`、`shared/contracts/openapi.yaml`、`clients/operator-console` 已全部收敛到 detection-only 契约。
+- `README.md`、`AGENTS.md`、`docs/prd.md` 已同步更新为“油茶果检测基线”表述。
+- 本地识别配置 `tooling/config/recognition.yaml` 已指向 `camellia_detection_v1` 的 `best.pt`。
+
+### 本次额外校验
+
+- `uv run pytest -q`
+- `go test ./services/api-gateway/...`
+- `bun run --cwd clients/operator-console typecheck`
+- `bun run --cwd clients/operator-console test`
+- `bun run --cwd clients/operator-console generate`
+- `uv run python mlops/training/train.py --data mlops/data/camellia-oleifera/data.yaml --model yolo26n.pt --project mlops/artifacts/models --name camellia_detection_v1 --device cuda:0`
+- `uv run python mlops/training/eval.py --model mlops/artifacts/models/camellia_detection_v1/weights/best.pt --data mlops/data/camellia-oleifera/data.yaml --output mlops/artifacts/metrics/camellia_detection_v1-eval_metrics.json --device cuda:0`
+
+补充说明：
+
+- 训练脚本与评估脚本已补齐仓库根目录执行时的 `settings` 导入路径。
+- `bun generate` 仍有 Google Fonts 元数据拉取超时告警与前端 chunk 偏大告警，但不影响本轮检测基线替换与产物生成。

@@ -2,7 +2,7 @@
 set -eu
 
 DATA=""
-EXP="camellia_v1"
+EXP="camellia_detection_v1"
 IMGSZ="640"
 DEVICE="cpu"
 OUTPUT=""

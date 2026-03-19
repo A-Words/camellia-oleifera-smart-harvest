@@ -2,7 +2,7 @@
 
 油茶智能采摘辅助系统仓库，当前基线围绕三层能力组织：
 
-- `recognition`：成熟果识别、成熟度判断、采摘建议基线
+- `recognition`：油茶果目标检测基线
 - `decision`：采摘路径与作业顺序决策骨架
 - `operations`：地块、树木、进度与效率管理骨架
 
@@ -16,7 +16,6 @@
 - `services/recognition-api/`：FastAPI 识别服务
 - `services/api-gateway/`：Go 网关，统一入口、鉴权、限流、代理
 - `shared/contracts/`：对外契约，当前主文件为 `shared/contracts/openapi.yaml`
-- `shared/constants/`：共享常量，当前保留成熟度颜色映射
 - `shared/domain/`：共享领域词汇与分层元数据
 - `mlops/training/`：训练与评估脚本
 - `mlops/data/`：训练数据目录
@@ -94,8 +93,8 @@ sh tooling/scripts/stack.sh --app-host 127.0.0.1 --app-port 8000 --gateway-confi
 ## 训练与评估
 
 ```bash
-sh tooling/scripts/train.sh --data mlops/data/camellia-oleifera/data.yaml --name camellia_v1
-sh tooling/scripts/eval.sh --data mlops/data/camellia-oleifera/data.yaml --exp camellia_v1
+sh tooling/scripts/train.sh --data mlops/data/camellia-oleifera/data.yaml --name camellia_detection_v1
+sh tooling/scripts/eval.sh --data mlops/data/camellia-oleifera/data.yaml --exp camellia_detection_v1
 ```
 
 默认产物：
@@ -122,5 +121,7 @@ sh tooling/scripts/verify.sh
 ## 当前状态说明
 
 - 识别链路已迁到新目录和新路由。
+- 当前活跃识别契约已收敛到单类 `camellia_oleifera_fruit` 检测，成熟度与采摘建议语义暂不作为主线输出。
+- 原始训练数据已落位到 `mlops/data/raw/camellia-oleifera-fruit-yolo/`，当前训练基线数据集位于 `mlops/data/camellia-oleifera/`。
 - `decision` 与 `operations` 当前提供页面和网关目录骨架，后续迭代补充领域实现。
 - 旧的 `batch / trace / dashboard` 语义已退出主线，不再作为现行接口和页面。

@@ -16,6 +16,7 @@ class RawDetection:
 
 class DetectorAdapter(ABC):
     name: str = "base"
+    default_class_name: str = "camellia_oleifera_fruit"
 
     @abstractmethod
     def load(self) -> None:
@@ -30,7 +31,7 @@ class DetectorAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def ripeness_from_class_id(self, class_id: int) -> str:
+    def class_name_from_class_id(self, class_id: int) -> str:
         raise NotImplementedError
 
     @property

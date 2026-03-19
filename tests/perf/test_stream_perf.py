@@ -30,8 +30,8 @@ class FakeDetector(DetectorAdapter):
     def predict(self, frame: np.ndarray):
         return [RawDetection(bbox=(1, 1, 20, 20), class_id=1, confidence=0.95)]
 
-    def ripeness_from_class_id(self, class_id: int) -> str:
-        return 'half'
+    def class_name_from_class_id(self, class_id: int) -> str:
+        return 'camellia_oleifera_fruit'
 
 
 @pytest.mark.perf
@@ -50,6 +50,8 @@ def test_stream_contract(monkeypatch) -> None:
                 ws.send_bytes(b'frame-bytes')
                 msg = ws.receive_json()
                 assert msg['type'] == 'frame'
+                assert msg['result']['frame_summary']['total'] == 1
             ws.send_text('eos')
             summary = ws.receive_json()
             assert summary['type'] == 'summary'
+            assert summary['summary']['total_detected'] == 1

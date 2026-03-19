@@ -25,8 +25,8 @@ class FakeDetector(DetectorAdapter):
     def predict(self, frame: np.ndarray):
         return [RawDetection(bbox=(10, 10, 100, 100), class_id=1, confidence=0.9)]
 
-    def ripeness_from_class_id(self, class_id: int) -> str:
-        return 'half'
+    def class_name_from_class_id(self, class_id: int) -> str:
+        return 'camellia_oleifera_fruit'
 
 
 def test_infer_image_success() -> None:
@@ -36,5 +36,5 @@ def test_infer_image_success() -> None:
 
     assert result.frame_index == 0
     assert result.frame_summary.total == 1
-    assert result.detections[0].ripeness == 'half'
+    assert result.detections[0].class_name == 'camellia_oleifera_fruit'
     assert inference_ms >= 0

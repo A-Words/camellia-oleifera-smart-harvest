@@ -4,7 +4,7 @@ import { useInferenceStream } from '~/composables/useInferenceStream'
 
 useSeoMeta({
   title: '识别',
-  description: '实时识别油茶果状态并输出采摘建议基线。'
+  description: '实时检测油茶果目标并输出检测数量基线。'
 })
 
 const videoElement = ref<HTMLVideoElement | null>(null)
@@ -70,7 +70,7 @@ onBeforeUnmount(() => {
           识别基线页
         </h1>
         <p class="text-sm text-toned sm:text-base">
-          聚焦第一层识别能力，提供实时观察、成熟度汇总和采摘建议基线。
+          聚焦第一层识别能力，提供实时油茶果检测、当前帧统计和会话累计数量基线。
         </p>
       </section>
 

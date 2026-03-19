@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Data,
-    [string]$Exp = "camellia_v1",
+    [string]$Exp = "camellia_detection_v1",
     [int]$Imgsz = 640,
     [string]$Device = "cpu",
     [string]$Output = ""

@@ -1,28 +1,16 @@
-import type { Detection, HarvestSuggestion, RipenessRatio } from '~/types/infer'
-import type { RecognitionSummary, RipenessLabel } from '~/types/recognition'
+import type { Detection } from '~/types/infer'
+import type { DetectionSummary } from '~/types/recognition'
 
 export interface SessionAggregateState {
   seenTrackIds: Set<number>
-  counts: Record<RipenessLabel, number>
   totalUnique: number
 }
 
-export interface SessionAggregateSummary extends RecognitionSummary {
-  unripe_count: number
-  unripe_ratio: number
-  ripeness_ratio: RipenessRatio
-  harvest_suggestion: HarvestSuggestion
-}
+export interface SessionAggregateSummary extends DetectionSummary {}
 
 export function createSessionAggregateState(): SessionAggregateState {
   return {
     seenTrackIds: new Set<number>(),
-    counts: {
-      green: 0,
-      half: 0,
-      red: 0,
-      young: 0
-    },
     totalUnique: 0
   }
 }
@@ -33,9 +21,6 @@ export function applyDetectionsToSession(
 ): SessionAggregateState {
   const next: SessionAggregateState = {
     seenTrackIds: new Set<number>(state.seenTrackIds),
-    counts: {
-      ...state.counts
-    },
     totalUnique: state.totalUnique
   }
 
@@ -48,70 +33,13 @@ export function applyDetectionsToSession(
     }
 
     next.totalUnique += 1
-    if (detection.ripeness in next.counts) {
-      next.counts[detection.ripeness] += 1
-    }
   }
 
   return next
 }
 
 export function buildSessionAggregateSummary(state: SessionAggregateState): SessionAggregateSummary {
-  const total = state.totalUnique
-  const green = state.counts.green
-  const half = state.counts.half
-  const red = state.counts.red
-  const young = state.counts.young
-  const unripeCount = green + young
-  const unripeRatio = total > 0 ? unripeCount / total : 0
-
-  const ripenessRatio: RipenessRatio = total > 0
-    ? {
-        green: green / total,
-        half: half / total,
-        red: red / total,
-        young: young / total
-      }
-    : {
-        green: 0,
-        half: 0,
-        red: 0,
-        young: 0
-      }
-
   return {
-    total,
-    green,
-    half,
-    red,
-    young,
-    unripe_count: unripeCount,
-    unripe_ratio: unripeRatio,
-    unripe_handling: 'sorted_out',
-    ripeness_ratio: ripenessRatio,
-    harvest_suggestion: computeHarvestSuggestion(ripenessRatio)
-  }
-}
-
-export function computeHarvestSuggestion(ratio: RipenessRatio): HarvestSuggestion {
-  if (ratio.red >= 0.7 && ratio.young < 0.15) {
-    return 'ready'
-  }
-  if ((ratio.red + ratio.half) >= 0.4) {
-    return 'partially_ready'
-  }
-  return 'not_ready'
-}
-
-export function toRecognitionSummary(summary: SessionAggregateSummary): RecognitionSummary {
-  return {
-    total: summary.total,
-    green: summary.green,
-    half: summary.half,
-    red: summary.red,
-    young: summary.young,
-    unripe_count: summary.unripe_count,
-    unripe_ratio: summary.unripe_ratio,
-    unripe_handling: 'sorted_out'
+    total: state.totalUnique
   }
 }
