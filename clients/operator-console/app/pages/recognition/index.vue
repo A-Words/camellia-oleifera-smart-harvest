@@ -80,6 +80,7 @@ onBeforeUnmount(() => {
           :selected-device-id="camera.selectedDeviceId.value"
           :is-recognizing="isStreaming"
           :camera-loading="camera.isCameraLoading.value"
+          :current-frame="lastFrame"
           :camera-error="camera.cameraError.value"
           :stream-error="streamError"
           @update:video-element="handleVideoElementChange"

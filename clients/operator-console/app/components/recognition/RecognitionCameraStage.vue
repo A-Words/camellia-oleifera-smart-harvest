@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import type { FrameResult } from '~/types/infer'
 import type { CameraOption } from '~/composables/useCamera'
+import { buildRecognitionOverlayBoxes } from '~/utils/recognition-overlay'
 
 const props = defineProps<{
   devices: CameraOption[]
   selectedDeviceId: string
   isRecognizing: boolean
   cameraLoading: boolean
+  currentFrame: FrameResult | null
   cameraError?: string
   streamError?: string
 }>()
@@ -19,16 +22,59 @@ const emit = defineEmits<{
 }>()
 
 const localVideo = ref<HTMLVideoElement | null>(null)
+const videoSize = ref({ width: 0, height: 0 })
 
 watch(localVideo, (video) => {
   emit('update:videoElement', video)
 }, { immediate: true })
 
+watch(localVideo, (video, previousVideo) => {
+  previousVideo?.removeEventListener('loadedmetadata', syncVideoSize)
+  previousVideo?.removeEventListener('resize', syncVideoSize)
+
+  if (!video) {
+    videoSize.value = { width: 0, height: 0 }
+    return
+  }
+
+  video.addEventListener('loadedmetadata', syncVideoSize)
+  video.addEventListener('resize', syncVideoSize)
+  syncVideoSize()
+}, { immediate: true })
+
 onBeforeUnmount(() => {
+  localVideo.value?.removeEventListener('loadedmetadata', syncVideoSize)
+  localVideo.value?.removeEventListener('resize', syncVideoSize)
   emit('update:videoElement', null)
 })
 
 const hasDevices = computed(() => props.devices.length > 0)
+const stageAspectRatio = computed(() => {
+  if (videoSize.value.width > 0 && videoSize.value.height > 0) {
+    return `${videoSize.value.width} / ${videoSize.value.height}`
+  }
+  return '16 / 9'
+})
+const overlayBoxes = computed(() =>
+  buildRecognitionOverlayBoxes(
+    props.currentFrame?.detections || [],
+    videoSize.value.width,
+    videoSize.value.height
+  )
+)
+
+function syncVideoSize() {
+  const video = localVideo.value
+  if (!video) {
+    videoSize.value = { width: 0, height: 0 }
+    return
+  }
+
+  videoSize.value = {
+    width: video.videoWidth || 0,
+    height: video.videoHeight || 0
+  }
+}
 </script>
 
 <template>
@@ -133,14 +179,39 @@ const hasDevices = computed(() => props.devices.length > 0)
         </template>
       </UAlert>
 
-      <div class="overflow-hidden rounded-lg border border-accented bg-black">
+      <div
+        class="relative overflow-hidden rounded-lg border border-accented bg-black/95"
+        :style="{ aspectRatio: stageAspectRatio }"
+      >
         <video
           ref="localVideo"
           autoplay
           muted
           playsinline
-          class="aspect-video w-full object-cover"
+          class="absolute inset-0 h-full w-full object-contain"
         />
+
+        <div
+          v-if="overlayBoxes.length"
+          class="pointer-events-none absolute inset-0"
+          aria-label="识别结果框选叠层"
+        >
+          <div
+            v-for="box in overlayBoxes"
+            :key="box.key"
+            class="absolute border-2 border-emerald-400 shadow-[0_0_0_1px_rgba(16,185,129,0.45)]"
+            :style="{
+              left: box.left,
+              top: box.top,
+              width: box.width,
+              height: box.height
+            }"
+          >
+            <div class="absolute left-0 top-0 -translate-y-full rounded-t-md bg-emerald-400/95 px-2 py-1 text-[11px] font-medium leading-none text-black">
+              {{ box.label }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </UCard>

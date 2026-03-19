@@ -290,3 +290,36 @@
 
 - 验证 repo root 与 `services/recognition-api` 两种 cwd 下，repo 相对 `model_path` 都能解析到正确权重。
 - 验证健康检查与推理接口在模型未加载时可返回明确诊断信息。
+
+## 2026-03-20 识别页实时框选叠层记录
+
+本轮已在 `clients/operator-console` 的 `/recognition` 实时识别页落地目标框叠层展示，前端现在不仅展示当前帧数量与会话累计数量，也会直接把流式识别返回的油茶果检测框渲染到摄像头画面上。
+
+### 当前前端显示基线
+
+- 框选叠层只消费现有流式识别结果中的 `detections`，不新增网关或识别服务接口字段。
+- 前端按视频实际 `videoWidth / videoHeight` 将后端返回的像素坐标 `bbox` 映射为叠层百分比定位。
+- 视频舞台已从“铺满裁切优先”调整为“完整画面优先”，避免 `object-cover` 裁切导致框位偏移。
+- 视频元数据未就绪时，舞台先按 `16:9` 回退；元数据可用后再切到真实宽高比。
+- 当前框选标签固定显示为“油茶果 + 置信度百分比”，不展示 `track_id`。
+
+### 本次前端校验
+
+- `bun run --cwd clients/operator-console typecheck`
+- `bun run --cwd clients/operator-console test`
+- `bun run --cwd clients/operator-console generate`
+
+## 2026-03-20 识别框标签精简记录
+
+本轮已将 `/recognition` 实时识别页的目标框标签从“类别名 + 置信度”收敛为“仅显示置信度百分比”。
+
+### 当前标签显示基线
+
+- 识别框仍保留左上角标签，但默认只展示如 `91%` 的置信度文案。
+- 前端不再在实时框标签中重复显示“油茶果”类别名。
+- 框位映射、颜色样式、完整画面优先显示策略和接口契约均保持不变。
+
+### 本次前端校验
+
+- `bun run --cwd clients/operator-console test`
+- `bun run --cwd clients/operator-console typecheck`

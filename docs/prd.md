@@ -48,7 +48,7 @@
 ### 3.2 当前核心场景
 
 1. 操作员进入 `/recognition`，选择摄像头并开始实时识别。
-2. 前端通过网关 WebSocket 接收识别结果，展示当前帧目标数量与会话累计检测数。
+2. 前端通过网关 WebSocket 接收识别结果，展示当前帧目标数量、会话累计检测数，并将检测框叠加到实时画面。
 3. 用户切换到 `/decision` 或 `/operations` 查看下一阶段能力骨架。
 
 ## 4. 业务域定义
@@ -107,7 +107,7 @@
 
 1. 摄像头设备枚举与切换
 2. 实时流识别
-3. 当前帧检测摘要展示
+3. 当前帧检测摘要与目标框叠层展示
 4. 会话级检测数量汇总展示
 5. 明确提示当前主线为检测基线，成熟度能力待后续数据补齐
 
@@ -155,8 +155,9 @@
 ## 9. 验收标准
 
 1. `/recognition` 页面可打开并正常建立识别流。
-2. `GET /healthz` 和 `GET /v1/health` 可返回健康信息。
-3. `POST /v1/recognition/image` 可返回识别结果。
-4. `GET /v1/recognition/stream` 可返回 `frame` 与 `summary` 事件。
-5. `/decision` 与 `/operations` 页面可正常渲染骨架。
-6. 旧 `/batch/create`、`/trace/*`、`/dashboard` 不再作为主线路由和文档基线。
+2. `/recognition` 页面可在实时画面上显示油茶果检测框与置信度标签。
+3. `GET /healthz` 和 `GET /v1/health` 可返回健康信息。
+4. `POST /v1/recognition/image` 可返回识别结果。
+5. `GET /v1/recognition/stream` 可返回 `frame` 与 `summary` 事件。
+6. `/decision` 与 `/operations` 页面可正常渲染骨架。
+7. 旧 `/batch/create`、`/trace/*`、`/dashboard` 不再作为主线路由和文档基线。

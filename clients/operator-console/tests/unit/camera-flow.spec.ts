@@ -59,6 +59,25 @@ describe('camera flow', () => {
     expect(source).not.toContain(':disabled="!hasDevices"')
   })
 
+  it('renders a dedicated overlay layer and avoids object-cover drift', () => {
+    const source = readFileSync(new URL('../../app/components/recognition/RecognitionCameraStage.vue', import.meta.url), 'utf8')
+    expect(source).toContain('buildRecognitionOverlayBoxes')
+    expect(source).toContain('识别结果框选叠层')
+    expect(source).toContain('object-contain')
+    expect(source).not.toContain('object-cover')
+  })
+
+  it('does not hardcode the class name into overlay labels', () => {
+    const source = readFileSync(new URL('../../app/utils/recognition-overlay.ts', import.meta.url), 'utf8')
+    expect(source).toContain("label: `${Math.round(detection.confidence * 100)}%`")
+    expect(source).not.toContain('油茶果')
+  })
+
+  it('passes the latest frame result into the recognition stage', () => {
+    const pageSource = readFileSync(new URL('../../app/pages/recognition/index.vue', import.meta.url), 'utf8')
+    expect(pageSource).toContain(':current-frame="lastFrame"')
+  })
+
   it('starts camera and refreshes selected device after first permission grant', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.stubGlobal('localStorage', createMemoryStorage())

@@ -132,6 +132,7 @@ sh tooling/scripts/verify.sh
 
 - 识别链路已迁到新目录和新路由。
 - 当前活跃识别契约已收敛到单类 `camellia_oleifera_fruit` 检测，成熟度与采摘建议语义暂不作为主线输出。
+- `/recognition` 实时页当前会将流式识别返回的目标框叠加到摄像头画面上，展示当前帧油茶果检测位置与置信度。
 - 原始训练数据已落位到 `mlops/data/raw/camellia-oleifera-fruit-yolo/`，当前训练基线数据集位于 `mlops/data/camellia-oleifera/`。
 - `decision` 与 `operations` 当前提供页面和网关目录骨架，后续迭代补充领域实现。
 - 旧的 `batch / trace / dashboard` 语义已退出主线，不再作为现行接口和页面。
