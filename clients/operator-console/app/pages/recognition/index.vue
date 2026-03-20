@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDecisionSnapshot } from '~/composables/useDecisionSnapshot'
 import { useCamera } from '~/composables/useCamera'
 import { useInferenceStream } from '~/composables/useInferenceStream'
 
@@ -15,6 +16,7 @@ const stream = useInferenceStream({
   frameIntervalMs: 300,
   jpegQuality: 0.8
 })
+const decisionSnapshot = useDecisionSnapshot()
 const {
   startStream,
   stopStream,
@@ -52,6 +54,13 @@ async function handleSwitchDevice(deviceId: string) {
 function handleVideoElementChange(video: HTMLVideoElement | null) {
   videoElement.value = video
 }
+
+watch(lastFrame, (frame) => {
+  decisionSnapshot.updateSnapshotFromFrame(frame, {
+    width: videoElement.value?.videoWidth || 0,
+    height: videoElement.value?.videoHeight || 0
+  })
+})
 
 onBeforeUnmount(() => {
   void stopStream()
@@ -107,7 +116,7 @@ onBeforeUnmount(() => {
                 当前分支先固定识别基线。后续会把本页输出接入决策层，用于树优先级、区域优先级和采摘顺序建议。
               </p>
               <div class="flex flex-wrap gap-2">
-                <UButton to="/decision" color="neutral" variant="outline" label="查看决策骨架" />
+                <UButton to="/decision" color="primary" label="生成采摘决策" />
                 <UButton to="/operations" color="neutral" variant="outline" label="查看作业骨架" />
               </div>
             </div>

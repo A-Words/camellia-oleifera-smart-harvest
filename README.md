@@ -3,7 +3,7 @@
 油茶智能采摘辅助系统仓库，当前基线围绕三层能力组织：
 
 - `recognition`：油茶果目标检测 + 多模态成熟度识别基线
-- `decision`：采摘路径与作业顺序决策骨架
+- `decision`：采摘路径与作业顺序决策 MVP
 - `operations`：地块、树木、进度与效率管理骨架
 
 当前可运行链路保持为：
@@ -98,6 +98,8 @@ sh tooling/scripts/stack.sh --app-host 127.0.0.1 --app-port 8000 --gateway-confi
 - `GET /v1/health`
 - `POST /v1/recognition/image`
 - `GET /v1/recognition/stream`（WebSocket）
+- `POST /v1/decision/recommendation`
+- `GET /v1/decision/history`
 
 当前 `Detection` 结果在保留目标框和数量字段的同时，支持返回成熟度三态 `ripeness`：
 
@@ -140,6 +142,8 @@ sh tooling/scripts/verify.sh
 - 识别链路已迁到新目录和新路由。
 - 当前活跃识别契约基于单类 `camellia_oleifera_fruit` 检测，并支持通过外部多模态 VLM 对检测框补全成熟度三态。
 - `/recognition` 实时页当前会将流式识别返回的目标框叠加到摄像头画面上，并优先展示 `可采 / 暂不可采 / 遮挡不清`；异步判定尚未完成时显示 `判定中`。
+- `/decision` 当前会消费最近一帧识别快照，按“可采优先 + 起点就近”生成区域优先级、采摘顺序和跳过建议，并展示最近 10 条决策历史。
 - 原始训练数据已落位到 `mlops/data/raw/camellia-oleifera-fruit-yolo/`，当前训练基线数据集位于 `mlops/data/camellia-oleifera/`。
-- `decision` 与 `operations` 当前提供页面和网关目录骨架，后续迭代补充领域实现。
+- 网关当前会将决策请求与响应写入配置中声明的数据库，并在启动时自动初始化 `decision_history` 表。
+- `operations` 当前仍提供页面和目录骨架，后续迭代补充领域实现。
 - 旧的 `batch / trace / dashboard` 语义已退出主线，不再作为现行接口和页面。

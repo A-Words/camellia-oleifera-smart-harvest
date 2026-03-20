@@ -141,6 +141,86 @@ paths:
           schema:
             $ref: "#/components/schemas/StreamErrorEnvelope"
 
+  /v1/decision/recommendation:
+    post:
+      operationId: createDecisionRecommendation
+      summary: Build harvest recommendations from a recognition snapshot
+      tags: [decision]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionSnapshotRequest"
+      responses:
+        "200":
+          description: Decision recommendation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DecisionRecommendationResponse"
+        "400":
+          description: Invalid snapshot request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden by policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Decision history persistence failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/decision/history:
+    get:
+      operationId: listDecisionHistory
+      summary: List recent decision recommendation history
+      tags: [decision]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Recent decision history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DecisionHistoryResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden by policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Decision history read failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -207,6 +287,208 @@ components:
       properties:
         total_detected:
           type: integer
+
+    DecisionSnapshotRequest:
+      type: object
+      required: [frame_index, timestamp_ms, frame_width, frame_height, detections]
+      properties:
+        frame_index:
+          type: integer
+          minimum: 0
+        timestamp_ms:
+          type: integer
+          minimum: 0
+        frame_width:
+          type: integer
+          minimum: 1
+        frame_height:
+          type: integer
+          minimum: 1
+        detections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Detection"
+
+    DecisionSummary:
+      type: object
+      required: [total_detections, harvestable_count, skipped_count, estimated_path_length]
+      properties:
+        total_detections:
+          type: integer
+          minimum: 0
+        harvestable_count:
+          type: integer
+          minimum: 0
+        skipped_count:
+          type: integer
+          minimum: 0
+        main_priority_zone:
+          type: string
+          nullable: true
+          enum:
+            - upper_left
+            - upper_center
+            - upper_right
+            - middle_left
+            - middle_center
+            - middle_right
+            - lower_left
+            - lower_center
+            - lower_right
+        estimated_path_length:
+          type: number
+          minimum: 0
+
+    ZonePriority:
+      type: object
+      required: [order, zone, harvestable_count, distance_to_start, note]
+      properties:
+        order:
+          type: integer
+          minimum: 1
+        zone:
+          type: string
+          enum:
+            - upper_left
+            - upper_center
+            - upper_right
+            - middle_left
+            - middle_center
+            - middle_right
+            - lower_left
+            - lower_center
+            - lower_right
+        harvestable_count:
+          type: integer
+          minimum: 0
+        distance_to_start:
+          type: number
+          minimum: 0
+        note:
+          type: string
+
+    PickSequenceItem:
+      type: object
+      required: [order, detection_index, zone, confidence, reason]
+      properties:
+        order:
+          type: integer
+          minimum: 1
+        detection_index:
+          type: integer
+          minimum: 0
+        track_id:
+          type: integer
+          nullable: true
+        zone:
+          type: string
+          enum:
+            - upper_left
+            - upper_center
+            - upper_right
+            - middle_left
+            - middle_center
+            - middle_right
+            - lower_left
+            - lower_center
+            - lower_right
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        reason:
+          type: string
+
+    SkipItem:
+      type: object
+      required: [detection_index, zone, skip_reason, confidence, reason]
+      properties:
+        detection_index:
+          type: integer
+          minimum: 0
+        track_id:
+          type: integer
+          nullable: true
+        zone:
+          type: string
+          enum:
+            - upper_left
+            - upper_center
+            - upper_right
+            - middle_left
+            - middle_center
+            - middle_right
+            - lower_left
+            - lower_center
+            - lower_right
+        skip_reason:
+          type: string
+          enum: [not_ready, occluded_unclear]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        reason:
+          type: string
+
+    DecisionRecommendationResponse:
+      type: object
+      required: [decision_id, created_at, summary, zone_priorities, pick_sequence, skip_items]
+      properties:
+        decision_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        summary:
+          $ref: "#/components/schemas/DecisionSummary"
+        zone_priorities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ZonePriority"
+        pick_sequence:
+          type: array
+          items:
+            $ref: "#/components/schemas/PickSequenceItem"
+        skip_items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkipItem"
+
+    DecisionHistoryItem:
+      type: object
+      required: [decision_id, created_at, request, summary, zone_priorities, pick_sequence, skip_items]
+      properties:
+        decision_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        request:
+          $ref: "#/components/schemas/DecisionSnapshotRequest"
+        summary:
+          $ref: "#/components/schemas/DecisionSummary"
+        zone_priorities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ZonePriority"
+        pick_sequence:
+          type: array
+          items:
+            $ref: "#/components/schemas/PickSequenceItem"
+        skip_items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkipItem"
+
+    DecisionHistoryResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DecisionHistoryItem"
 
     ModelMeta:
       type: object

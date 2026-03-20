@@ -381,3 +381,75 @@
 补充说明：
 
 - `bun generate` 仍存在 Google Fonts 元数据拉取超时告警和前端 chunk 偏大告警，但本轮成熟度能力接入不受影响，静态产物已正常生成。
+
+## 2026-03-20 采摘路径与作业决策 MVP 落地记录
+
+本轮已将第二层 `decision` 从“骨架占位”推进到“识别快照驱动的规则决策 MVP”。当前决策层不重复调用识别服务，而是直接消费前端持有的最近一帧识别快照，在网关内完成规则推断并保存最近历史。
+
+### 当前决策接口基线
+
+- 当前新增并生效的网关接口为：
+  - `POST /v1/decision/recommendation`
+  - `GET /v1/decision/history`
+- `POST /v1/decision/recommendation` 当前请求体固定为：
+  - `frame_index`
+  - `timestamp_ms`
+  - `frame_width`
+  - `frame_height`
+  - `detections`
+- 当前决策返回主线字段固定为：
+  - `decision_id`
+  - `created_at`
+  - `summary`
+  - `zone_priorities`
+  - `pick_sequence`
+  - `skip_items`
+- 当前历史接口固定返回最近 `10` 条完整决策记录，不提供筛选、分页或详情展开。
+
+### 当前规则决策基线
+
+- 当前决策规则固定为“`harvestable` 优先 + 起点就近路径”：
+  - 仅 `ripeness = harvestable` 的目标进入采摘顺序候选
+  - `not_ready` 与 `occluded_unclear` 目标进入跳过建议
+  - `ripeness` 缺失时按保守策略记为 `occluded_unclear` 跳过
+- 当前树冠区域划分固定为单帧 `3 x 3` 网格，区域枚举已沉淀到：
+  - `shared/domain/decision-zones.json`
+- 当前跳过原因共享枚举已沉淀到：
+  - `shared/domain/decision-skip-reasons.json`
+- 当前采摘顺序起点固定为画面底部中点，并使用最近邻策略生成顺序。
+
+### 当前前端决策页基线
+
+- `/recognition` 当前会将最近一帧识别结果与视频尺寸保存为共享快照状态。
+- `/decision` 当前进入后会：
+  - 先读取最近决策历史
+  - 若存在未提交过的最新识别快照，则自动生成一次决策
+- `/decision` 当前页面会展示：
+  - 当前一次决策结果
+  - 区域优先级
+  - 采摘顺序
+  - 跳过建议
+  - 最近 10 条历史记录
+- 没有可用识别快照时，`/decision` 当前会展示引导用户返回 `/recognition` 获取快照的空状态。
+
+### 当前网关存储基线
+
+- 网关当前启动时会初始化决策历史存储并自动建表：
+  - `decision_history`
+- 当前表主字段固定为：
+  - `id`
+  - `created_at`
+  - `request_json`
+  - `response_json`
+- 当前 DB 连接继续复用 `tooling/config/gateway.yaml` / `gateway.yaml.example` 中既有的 `db` 配置，不新增决策专用配置项。
+
+### 本次校验
+
+- `go test ./services/api-gateway/...`
+- `bun run --cwd clients/operator-console test`
+- `bun run --cwd clients/operator-console typecheck`
+- `bun run --cwd clients/operator-console generate`
+
+补充说明：
+
+- `bun generate` 仍存在 Google Fonts 元数据拉取超时告警与前端 chunk 偏大告警，但本轮决策 MVP 产物已正常生成。

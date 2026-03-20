@@ -165,6 +165,8 @@ func TestAuthRequiresKeyForProtectedReadPath(t *testing.T) {
 	}{
 		{name: "recognition image", method: http.MethodPost, path: "/v1/recognition/image"},
 		{name: "recognition stream", method: http.MethodGet, path: "/v1/recognition/stream"},
+		{name: "decision recommendation", method: http.MethodPost, path: "/v1/decision/recommendation"},
+		{name: "decision history", method: http.MethodGet, path: "/v1/decision/history"},
 	}
 
 	for _, tt := range tests {

@@ -28,7 +28,9 @@
    - `GET /v1/health`
    - `POST /v1/recognition/image`
    - `GET /v1/recognition/stream`
-5. `decision` 与 `operations` 提供骨架页和目录占位。
+   - `POST /v1/decision/recommendation`
+   - `GET /v1/decision/history`
+5. `decision` 提供基于识别快照的规则决策 MVP，`operations` 保持骨架页和目录占位。
 
 ### 2.2 当前 Out of Scope
 
@@ -49,7 +51,8 @@
 
 1. 操作员进入 `/recognition`，选择摄像头并开始实时识别。
 2. 前端通过网关 WebSocket 接收识别结果，展示当前帧目标数量、会话累计检测数，并将检测框与成熟度标签叠加到实时画面。
-3. 用户切换到 `/decision` 或 `/operations` 查看下一阶段能力骨架。
+3. 用户切换到 `/decision`，自动消费最近一帧识别快照，查看区域优先级、采摘顺序、跳过建议和最近决策历史。
+4. 用户切换到 `/operations` 查看下一阶段能力骨架。
 
 ## 4. 业务域定义
 
@@ -72,6 +75,13 @@
 - 树冠区域优先级
 - 采摘顺序
 - 跳过建议
+
+当前 v1 已实现：
+
+- 基于单帧 `3 x 3` 区域划分的区域优先级
+- 仅对 `harvestable` 目标生成采摘顺序
+- 对 `not_ready / occluded_unclear / ripeness 缺失` 目标生成跳过建议
+- 保存最近决策历史供前端查看
 
 ### 4.3 作业管理域
 
@@ -114,10 +124,13 @@
 
 ### 6.2 决策页 `/decision`
 
-当前允许：
+当前必须支持：
 
-1. 展示决策层能力说明
-2. 保留后续实现入口
+1. 读取最近一帧识别快照并自动触发一次决策请求
+2. 提供手动重新生成入口
+3. 展示区域优先级、采摘顺序和跳过建议
+4. 展示最近 10 条决策历史
+5. 在没有识别快照时展示引导空状态
 
 ### 6.3 作业页 `/operations`
 
@@ -147,6 +160,11 @@
   - `decision`
   - `operations`
 
+### 7.4 决策接口
+
+- `POST /v1/decision/recommendation`
+- `GET /v1/decision/history`
+
 ## 8. 非功能要求
 
 1. 前端不得绕过网关直连识别服务。
@@ -160,5 +178,7 @@
 3. `GET /healthz` 和 `GET /v1/health` 可返回健康信息。
 4. `POST /v1/recognition/image` 可返回带 `ripeness` 的识别结果。
 5. `GET /v1/recognition/stream` 可返回 `frame` 与 `summary` 事件，且成熟度判断失败时不会中断检测主链。
-6. `/decision` 与 `/operations` 页面可正常渲染骨架。
-7. 旧 `/batch/create`、`/trace/*`、`/dashboard` 不再作为主线路由和文档基线。
+6. `POST /v1/decision/recommendation` 可消费识别快照并返回区域优先级、采摘顺序和跳过建议。
+7. `GET /v1/decision/history` 可返回最近 10 条完整决策记录。
+8. `/decision` 页面可展示当前决策结果、空状态和最近历史，`/operations` 页面可正常渲染骨架。
+9. 旧 `/batch/create`、`/trace/*`、`/dashboard` 不再作为主线路由和文档基线。

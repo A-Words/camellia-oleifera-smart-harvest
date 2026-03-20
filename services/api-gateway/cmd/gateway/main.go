@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/decision"
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/config"
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/middleware"
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/proxy"
@@ -55,8 +56,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	decisionRepo, err := decision.NewRepository(cfg.DB)
+	if err != nil {
+		logger.Error("failed to create decision repository", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := decisionRepo.Close(); err != nil {
+			logger.Error("failed to close decision repository", "error", err)
+		}
+	}()
+
+	decisionHandler := decision.NewHandler(decisionRepo, logger)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", systemhttp.Health(cfg.Upstream, logger))
+	decisionHandler.Register(mux)
 	mux.Handle("/", rp)
 
 	var h http.Handler = mux

@@ -62,6 +62,8 @@ def test_new_paths_exist_and_operation_ids_are_unique() -> None:
     assert "/v1/health" in paths
     assert "/v1/recognition/image" in paths
     assert "/v1/recognition/stream" in paths
+    assert "/v1/decision/recommendation" in paths
+    assert "/v1/decision/history" in paths
 
     operation_ids: list[str] = []
     for methods in paths.values():
@@ -92,6 +94,30 @@ def test_recognition_stream_declares_auth() -> None:
     assert {"ApiKeyAuth": []} in operation["security"]
 
 
+def test_decision_endpoints_declare_auth_and_schema() -> None:
+    doc = _load_openapi()
+
+    recommend = doc["paths"]["/v1/decision/recommendation"]["post"]
+    history = doc["paths"]["/v1/decision/history"]["get"]
+
+    assert {"ApiKeyAuth": []} in recommend["security"]
+    assert {"ApiKeyAuth": []} in history["security"]
+
+    request_props = doc["components"]["schemas"]["DecisionSnapshotRequest"]["properties"]
+    summary_props = doc["components"]["schemas"]["DecisionSummary"]["properties"]
+    skip_props = doc["components"]["schemas"]["SkipItem"]["properties"]
+
+    assert list(request_props.keys()) == [
+        "frame_index",
+        "timestamp_ms",
+        "frame_width",
+        "frame_height",
+        "detections",
+    ]
+    assert "main_priority_zone" in summary_props
+    assert skip_props["skip_reason"]["enum"] == ["not_ready", "occluded_unclear"]
+
+
 def test_prd_field_names_match_contract() -> None:
     doc = _load_openapi()
     prd_text = PRD_PATH.read_text(encoding="utf-8")
@@ -102,6 +128,8 @@ def test_prd_field_names_match_contract() -> None:
         "作业管理域",
         "/v1/recognition/image",
         "/v1/recognition/stream",
+        "/v1/decision/recommendation",
+        "/v1/decision/history",
     ]
     for token in required_tokens:
         assert token in prd_text
