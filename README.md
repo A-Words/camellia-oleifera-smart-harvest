@@ -2,7 +2,7 @@
 
 油茶智能采摘辅助系统仓库，当前基线围绕三层能力组织：
 
-- `recognition`：油茶果目标检测基线
+- `recognition`：油茶果目标检测 + 多模态成熟度识别基线
 - `decision`：采摘路径与作业顺序决策骨架
 - `operations`：地块、树木、进度与效率管理骨架
 
@@ -57,6 +57,7 @@ Copy-Item tooling/config/gateway.yaml.example tooling/config/gateway.yaml
 说明：
 
 - `tooling/config/recognition.yaml` 中的相对 `model_path` 现在会优先按配置文件目录解析，再回退到仓库根目录，因此从仓库根目录或 `services/recognition-api` 目录启动都能正确找到模型。
+- 若启用多模态成熟度识别，还需提供环境变量 `CAMELLIA_VLM_API_KEY`。
 
 ## 启动
 
@@ -98,6 +99,12 @@ sh tooling/scripts/stack.sh --app-host 127.0.0.1 --app-port 8000 --gateway-confi
 - `POST /v1/recognition/image`
 - `GET /v1/recognition/stream`（WebSocket）
 
+当前 `Detection` 结果在保留目标框和数量字段的同时，支持返回成熟度三态 `ripeness`：
+
+- `harvestable`
+- `not_ready`
+- `occluded_unclear`
+
 契约文件：`shared/contracts/openapi.yaml`
 
 ## 训练与评估
@@ -131,8 +138,8 @@ sh tooling/scripts/verify.sh
 ## 当前状态说明
 
 - 识别链路已迁到新目录和新路由。
-- 当前活跃识别契约已收敛到单类 `camellia_oleifera_fruit` 检测，成熟度与采摘建议语义暂不作为主线输出。
-- `/recognition` 实时页当前会将流式识别返回的目标框叠加到摄像头画面上，展示当前帧油茶果检测位置与置信度。
+- 当前活跃识别契约基于单类 `camellia_oleifera_fruit` 检测，并支持通过外部多模态 VLM 对检测框补全成熟度三态。
+- `/recognition` 实时页当前会将流式识别返回的目标框叠加到摄像头画面上，并优先展示 `可采 / 暂不可采 / 遮挡不清`；异步判定尚未完成时显示 `判定中`。
 - 原始训练数据已落位到 `mlops/data/raw/camellia-oleifera-fruit-yolo/`，当前训练基线数据集位于 `mlops/data/camellia-oleifera/`。
 - `decision` 与 `operations` 当前提供页面和网关目录骨架，后续迭代补充领域实现。
 - 旧的 `batch / trace / dashboard` 语义已退出主线，不再作为现行接口和页面。

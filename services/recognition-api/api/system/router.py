@@ -11,5 +11,6 @@ router = APIRouter(tags=["system"])
 async def health(request: Request) -> HealthResponse:
     pipeline = request.app.state.pipeline
     meta = pipeline.model_meta()
-    status = 'ok' if meta.loaded else 'degraded'
+    ripeness_ready = (not meta.ripeness_enabled) or meta.ripeness_loaded
+    status = 'ok' if meta.loaded and ripeness_ready else 'degraded'
     return HealthResponse(status=status, model=meta)

@@ -18,6 +18,10 @@ class CurrentModelResponse(BaseModel):
     adapter: str
     loaded: bool
     load_error: str | None = None
+    ripeness_enabled: bool = False
+    ripeness_adapter: str | None = None
+    ripeness_loaded: bool = False
+    ripeness_error: str | None = None
 
 
 class StreamFrameEnvelope(BaseModel):

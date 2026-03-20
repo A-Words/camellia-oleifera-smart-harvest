@@ -79,3 +79,6 @@ class ByteTrackManager:
             self._missing.pop(track_id, None)
 
         return outputs
+
+    def active_track_ids(self) -> set[int]:
+        return set(self._tracks.keys())

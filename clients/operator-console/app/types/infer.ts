@@ -1,8 +1,11 @@
+export type RipenessLabel = 'harvestable' | 'not_ready' | 'occluded_unclear'
+
 export interface Detection {
   bbox: [number, number, number, number]
   class_name: 'camellia_oleifera_fruit'
   confidence: number
   track_id: number | null
+  ripeness: RipenessLabel | null
 }
 
 export interface FrameSummary {

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+
 import numpy as np
 
 from core.recognition.adapters.base import DetectorAdapter, RawDetection
 from core.recognition.pipeline import InferencePipeline
+from core.recognition.ripeness.base import RipenessClassifier
 
 
 class FakeDetector(DetectorAdapter):
@@ -29,6 +32,28 @@ class FakeDetector(DetectorAdapter):
         return 'camellia_oleifera_fruit'
 
 
+class FakeRipenessClassifier(RipenessClassifier):
+    name = 'fake_vlm'
+
+    def __init__(self, outputs: list[str | None]) -> None:
+        self._loaded = True
+        self.load_error = None
+        self.crop_padding_ratio = 0.12
+        self.outputs = outputs
+        self.calls = 0
+
+    @property
+    def loaded(self) -> bool:
+        return self._loaded
+
+    def load(self) -> None:
+        self._loaded = True
+
+    async def classify_crops(self, crops):
+        self.calls += 1
+        return self.outputs[:len(crops)]
+
+
 def test_infer_image_success() -> None:
     pipeline = InferencePipeline(FakeDetector(), model_version='1.0.0', schema_version='v1')
     frame = np.zeros((240, 320, 3), dtype=np.uint8)
@@ -37,4 +62,50 @@ def test_infer_image_success() -> None:
     assert result.frame_index == 0
     assert result.frame_summary.total == 1
     assert result.detections[0].class_name == 'camellia_oleifera_fruit'
+    assert result.detections[0].ripeness is None
     assert inference_ms >= 0
+
+
+def test_enrich_image_result_applies_ripeness_labels() -> None:
+    classifier = FakeRipenessClassifier(['harvestable'])
+    pipeline = InferencePipeline(
+        FakeDetector(),
+        model_version='1.0.0',
+        schema_version='v1',
+        ripeness_classifier=classifier,
+    )
+    frame = np.zeros((240, 320, 3), dtype=np.uint8)
+
+    result, _ = pipeline.infer_image(frame)
+    enriched = asyncio.run(pipeline.enrich_image_result(frame, result))
+
+    assert enriched.detections[0].ripeness == 'harvestable'
+    assert classifier.calls == 1
+
+
+def test_stream_ripeness_requests_are_cached_by_track_id() -> None:
+    classifier = FakeRipenessClassifier(['not_ready'])
+    pipeline = InferencePipeline(
+        FakeDetector(),
+        model_version='1.0.0',
+        schema_version='v1',
+        ripeness_classifier=classifier,
+    )
+    frame = np.zeros((240, 320, 3), dtype=np.uint8)
+    session = pipeline.create_stream_session()
+
+    first = pipeline.infer_stream_frame(frame, session, timestamp_ms=0)
+    requests = pipeline.build_stream_ripeness_requests(frame, first, session)
+    assert first.detections[0].track_id == 1
+    assert first.detections[0].ripeness is None
+    assert len(requests) == 1
+
+    asyncio.run(pipeline.resolve_stream_ripeness_requests(requests, session))
+
+    second = pipeline.infer_stream_frame(frame, session, timestamp_ms=30)
+    repeat_requests = pipeline.build_stream_ripeness_requests(frame, second, session)
+
+    assert second.detections[0].track_id == 1
+    assert second.detections[0].ripeness == 'not_ready'
+    assert repeat_requests == []
+    assert classifier.calls == 1

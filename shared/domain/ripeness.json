@@ -1,0 +1,21 @@
+{
+  "field": "ripeness",
+  "description": "油茶果成熟度三态标签，供识别层与前端框选展示复用。",
+  "values": [
+    {
+      "key": "harvestable",
+      "label": "可采",
+      "description": "成熟度满足当前采摘条件。"
+    },
+    {
+      "key": "not_ready",
+      "label": "暂不可采",
+      "description": "尚未达到当前采摘条件。"
+    },
+    {
+      "key": "occluded_unclear",
+      "label": "遮挡不清",
+      "description": "目标存在遮挡或图像信息不足，无法可靠判断。"
+    }
+  ]
+}

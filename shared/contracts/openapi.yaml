@@ -172,6 +172,10 @@ components:
         track_id:
           type: integer
           nullable: true
+        ripeness:
+          type: string
+          nullable: true
+          enum: [harvestable, not_ready, occluded_unclear]
 
     FrameSummary:
       type: object
@@ -206,7 +210,7 @@ components:
 
     ModelMeta:
       type: object
-      required: [model_version, schema_version, adapter, loaded]
+      required: [model_version, schema_version, adapter, loaded, ripeness_enabled, ripeness_loaded]
       properties:
         model_version:
           type: string
@@ -217,6 +221,16 @@ components:
         loaded:
           type: boolean
         load_error:
+          type: string
+          nullable: true
+        ripeness_enabled:
+          type: boolean
+        ripeness_adapter:
+          type: string
+          nullable: true
+        ripeness_loaded:
+          type: boolean
+        ripeness_error:
           type: string
           nullable: true
 

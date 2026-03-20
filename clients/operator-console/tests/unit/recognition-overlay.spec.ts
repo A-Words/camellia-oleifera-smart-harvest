@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { buildRecognitionOverlayBoxes } from '../../app/utils/recognition-overlay'
-import type { Detection } from '../../app/types/infer'
+import type { Detection, RipenessLabel } from '../../app/types/infer'
 
-function detection(bbox: Detection['bbox'], confidence = 0.91): Detection {
+function detection(
+  bbox: Detection['bbox'],
+  confidence = 0.91,
+  ripeness: RipenessLabel | null = 'harvestable'
+): Detection {
   return {
     bbox,
     class_name: 'camellia_oleifera_fruit',
     confidence,
-    track_id: null
+    track_id: null,
+    ripeness
   }
 }
 
@@ -19,7 +24,7 @@ describe('recognition overlay', () => {
 
     expect(boxes).toEqual([{
       key: '0-10-20-110-220-0.91',
-      label: '91%',
+      label: '可采',
       left: '5.000%',
       top: '5.000%',
       width: '50.000%',
@@ -29,12 +34,12 @@ describe('recognition overlay', () => {
 
   it('clips detections that exceed video bounds', () => {
     const boxes = buildRecognitionOverlayBoxes([
-      detection([-20, 50, 260, 170], 0.73)
+      detection([-20, 50, 260, 170], 0.73, 'not_ready')
     ], 200, 160)
 
     expect(boxes).toEqual([{
       key: '0-0-50-200-160-0.73',
-      label: '73%',
+      label: '暂不可采',
       left: '0.000%',
       top: '31.250%',
       width: '100.000%',
@@ -42,13 +47,20 @@ describe('recognition overlay', () => {
     }])
   })
 
-  it('shows confidence only without the class name', () => {
+  it('maps ripeness labels into human readable overlay text', () => {
     const boxes = buildRecognitionOverlayBoxes([
-      detection([10, 20, 110, 220], 0.88)
+      detection([10, 20, 110, 220], 0.88, 'occluded_unclear')
     ], 200, 400)
 
-    expect(boxes[0]?.label).toBe('88%')
-    expect(boxes[0]?.label.includes('油茶果')).toBe(false)
+    expect(boxes[0]?.label).toBe('遮挡不清')
+  })
+
+  it('shows pending text when ripeness is not ready yet', () => {
+    const boxes = buildRecognitionOverlayBoxes([
+      detection([10, 20, 110, 220], 0.88, null)
+    ], 200, 400)
+
+    expect(boxes[0]?.label).toBe('判定中')
   })
 
   it('skips zero-area or invalid boxes', () => {

@@ -4,3 +4,10 @@ model_path: ""
 conf_threshold: 0.25
 nms_iou: 0.45
 device: "auto"
+ripeness_enabled: false
+ripeness_adapter: "openai_compatible"
+vlm_base_url: "https://api.openai.com/v1"
+vlm_model: ""
+vlm_timeout_s: 15
+vlm_batch_size: 4
+vlm_crop_padding_ratio: 0.12

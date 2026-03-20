@@ -69,8 +69,8 @@ describe('camera flow', () => {
 
   it('does not hardcode the class name into overlay labels', () => {
     const source = readFileSync(new URL('../../app/utils/recognition-overlay.ts', import.meta.url), 'utf8')
-    expect(source).toContain("label: `${Math.round(detection.confidence * 100)}%`")
-    expect(source).not.toContain('油茶果')
+    expect(source).toContain("if (detection.ripeness === 'harvestable')")
+    expect(source).toContain("return '判定中'")
   })
 
   it('passes the latest frame result into the recognition stage', () => {

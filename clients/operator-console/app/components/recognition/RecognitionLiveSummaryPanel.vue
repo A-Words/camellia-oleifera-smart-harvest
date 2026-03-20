@@ -37,7 +37,7 @@ const props = defineProps<{
       >
         <template #description>
           <p class="text-sm">
-            当前主线只输出油茶果检测结果，成熟度判断与采摘建议将在后续具备对应数据后恢复。
+            当前主线已支持油茶果检测与成熟度判断，识别框会优先展示可采状态，后续再继续补强采摘建议。
           </p>
         </template>
       </UAlert>

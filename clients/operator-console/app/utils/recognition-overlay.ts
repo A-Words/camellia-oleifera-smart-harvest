@@ -27,7 +27,7 @@ export function buildRecognitionOverlayBoxes(
     const [x1, y1, x2, y2] = normalized
     return [{
       key: `${index}-${x1}-${y1}-${x2}-${y2}-${detection.confidence}`,
-      label: `${Math.round(detection.confidence * 100)}%`,
+      label: formatRipenessLabel(detection),
       left: toPercent(x1 / videoWidth),
       top: toPercent(y1 / videoHeight),
       width: toPercent((x2 - x1) / videoWidth),
@@ -66,4 +66,17 @@ function clamp(value: number, min: number, max: number): number {
 
 function toPercent(value: number): string {
   return `${(value * 100).toFixed(3)}%`
+}
+
+function formatRipenessLabel(detection: Detection): string {
+  if (detection.ripeness === 'harvestable') {
+    return '可采'
+  }
+  if (detection.ripeness === 'not_ready') {
+    return '暂不可采'
+  }
+  if (detection.ripeness === 'occluded_unclear') {
+    return '遮挡不清'
+  }
+  return '判定中'
 }

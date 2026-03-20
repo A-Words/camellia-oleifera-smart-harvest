@@ -112,8 +112,10 @@ def test_prd_field_names_match_contract() -> None:
     model_meta_props = doc["components"]["schemas"]["ModelMeta"]["properties"]
 
     assert detection_props["class_name"]["enum"] == ["camellia_oleifera_fruit"]
-    assert "ripeness" not in detection_props
+    assert detection_props["ripeness"]["enum"] == ["harvestable", "not_ready", "occluded_unclear"]
     assert "detections" in frame_props
     assert "frame_summary" in frame_props
     assert list(session_props.keys()) == ["total_detected"]
     assert "load_error" in model_meta_props
+    assert "ripeness_enabled" in model_meta_props
+    assert "ripeness_loaded" in model_meta_props

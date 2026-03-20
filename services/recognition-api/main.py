@@ -8,7 +8,7 @@ from fastapi import FastAPI
 
 from api.recognition.router import router as recognition_router
 from api.system.router import router as system_router
-from core.recognition.factory import build_detector
+from core.recognition.factory import build_detector, build_ripeness_classifier
 from core.recognition.pipeline import InferencePipeline
 from settings import (
     ServiceConfig,
@@ -62,6 +62,15 @@ def _record_detector_load_error(detector: object, exc: Exception) -> None:
     print(f"[model-load] {message}")
 
 
+def _record_ripeness_load_error(classifier: object, exc: Exception) -> None:
+    message = str(exc).strip() or exc.__class__.__name__
+    if hasattr(classifier, "load_error"):
+        setattr(classifier, "load_error", message)
+    if hasattr(classifier, "_loaded"):
+        setattr(classifier, "_loaded", False)
+    print(f"[ripeness-load] {message}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     model_cfg_path = _resolve_config_path(
@@ -77,18 +86,25 @@ async def lifespan(app: FastAPI):
     service_cfg: ServiceConfig = load_service_config(service_cfg_path)
 
     detector = build_detector(model_cfg)
+    ripeness_classifier = build_ripeness_classifier(model_cfg)
     try:
         detector.load()
         detector.warmup()
     except Exception as exc:
         # Keep service booted in degraded mode for health visibility.
         _record_detector_load_error(detector, exc)
+    if ripeness_classifier is not None:
+        try:
+            ripeness_classifier.load()
+        except Exception as exc:
+            _record_ripeness_load_error(ripeness_classifier, exc)
 
     app.state.service_cfg = service_cfg
     app.state.pipeline = InferencePipeline(
         detector=detector,
         model_version=model_cfg.model_version,
         schema_version=service_cfg.schema_version,
+        ripeness_classifier=ripeness_classifier,
     )
 
     yield

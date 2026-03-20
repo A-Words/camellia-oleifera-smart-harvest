@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 
 import numpy as np
@@ -45,8 +46,11 @@ async def infer_image(request: Request, file: UploadFile = File(...)) -> ImageIn
         raise HTTPException(status_code=413, detail='Uploaded file is too large')
 
     try:
+        started = time.perf_counter()
         frame = _decode_image_bytes(body)
-        result, inference_ms = pipeline.infer_image(frame)
+        result, _ = pipeline.infer_image(frame)
+        result = await pipeline.enrich_image_result(frame, result)
+        inference_ms = (time.perf_counter() - started) * 1000.0
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -67,6 +71,7 @@ async def infer_stream(websocket: WebSocket) -> None:
     pipeline = websocket.app.state.pipeline
     session = pipeline.create_stream_session()
     started = time.perf_counter()
+    pending_tasks: set[asyncio.Task[None]] = set()
 
     try:
         while True:
@@ -91,6 +96,7 @@ async def infer_stream(websocket: WebSocket) -> None:
             try:
                 frame = _decode_image_bytes(payload)
                 result = pipeline.infer_stream_frame(frame, session, timestamp_ms)
+                requests = pipeline.build_stream_ripeness_requests(frame, result, session)
             except Exception as exc:
                 await websocket.send_json({'type': 'error', 'detail': str(exc)})
                 continue
@@ -102,9 +108,17 @@ async def infer_stream(websocket: WebSocket) -> None:
                 result=result,
             )
             await websocket.send_json(envelope.model_dump())
+            if requests:
+                task = asyncio.create_task(pipeline.resolve_stream_ripeness_requests(requests, session))
+                pending_tasks.add(task)
+                task.add_done_callback(lambda finished: pending_tasks.discard(finished))
     except WebSocketDisconnect:
         pass
     finally:
+        if pending_tasks:
+            for task in list(pending_tasks):
+                task.cancel()
+            await asyncio.gather(*pending_tasks, return_exceptions=True)
         meta = pipeline.model_meta()
         summary = session.aggregator.build_summary()
         envelope = StreamSummaryEnvelope(

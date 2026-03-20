@@ -4,12 +4,15 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+RipenessLabel = Literal["harvestable", "not_ready", "occluded_unclear"]
+
 
 class Detection(BaseModel):
     bbox: tuple[float, float, float, float]
     class_name: Literal["camellia_oleifera_fruit"] = "camellia_oleifera_fruit"
     confidence: float = Field(ge=0.0, le=1.0)
     track_id: int | None = None
+    ripeness: RipenessLabel | None = None
 
 
 class FrameSummary(BaseModel):
@@ -33,3 +36,7 @@ class ModelMeta(BaseModel):
     adapter: str
     loaded: bool
     load_error: str | None = None
+    ripeness_enabled: bool = False
+    ripeness_adapter: str | None = None
+    ripeness_loaded: bool = False
+    ripeness_error: str | None = None

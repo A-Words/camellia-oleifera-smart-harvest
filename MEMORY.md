@@ -323,3 +323,61 @@
 
 - `bun run --cwd clients/operator-console test`
 - `bun run --cwd clients/operator-console typecheck`
+
+## 2026-03-20 多模态成熟度识别接入记录
+
+本轮已将仓库当前识别主线从“detection-only”升级为“YOLO 检测 + 外部多模态 VLM 成熟度补全”。此前 2026-03-19 记录中的“主线不再包含 `ripeness`”现已被新决策覆盖：当前活跃识别结果重新允许返回成熟度字段，但成熟度来源不再是旧分类模型，而是检测后裁剪图的多模态推理结果。
+
+### 当前成熟度基线
+
+- 当前成熟度字段固定为 `Detection.ripeness`，可选值为：
+  - `harvestable`
+  - `not_ready`
+  - `occluded_unclear`
+- 前端框选标签当前固定映射为：
+  - `harvestable -> 可采`
+  - `not_ready -> 暂不可采`
+  - `occluded_unclear -> 遮挡不清`
+  - `null -> 判定中`
+- `/v1/recognition/image` 会在检测后同步补全成熟度。
+- `/v1/recognition/stream` 会对有 `track_id` 的新目标按 track 异步触发一次成熟度识别，并缓存到后续帧复用。
+- 成熟度识别失败不会中断检测主链；检测结果仍返回，但 `ripeness` 置为 `null`。
+
+### 当前多模态运行时基线
+
+- v1 成熟度适配器固定为外部可配置 HTTP VLM，当前内置适配器名为 `openai_compatible`。
+- 识别配置模板 `tooling/config/recognition.yaml.example` 已新增：
+  - `ripeness_enabled`
+  - `ripeness_adapter`
+  - `vlm_base_url`
+  - `vlm_model`
+  - `vlm_timeout_s`
+  - `vlm_batch_size`
+  - `vlm_crop_padding_ratio`
+- 启用成熟度识别时必须提供环境变量：
+  - `CAMELLIA_VLM_API_KEY`
+- 健康检查 `ModelMeta` 当前新增：
+  - `ripeness_enabled`
+  - `ripeness_adapter`
+  - `ripeness_loaded`
+  - `ripeness_error`
+
+### 当前共享契约与前端基线
+
+- `shared/contracts/openapi.yaml`、`services/recognition-api/schemas`、`clients/operator-console/app/types/infer.ts` 已同步到带 `ripeness` 的 Detection 契约。
+- `shared/domain/ripeness.json` 已成为仓库内成熟度三态共享词汇文件。
+- `/recognition` 页面当前优先显示成熟度标签，而不再显示置信度百分比。
+
+### 本次校验
+
+- `uv run pytest -q services/recognition-api/tests/unit/test_pipeline.py services/recognition-api/tests/unit/test_ripeness_crop.py services/recognition-api/tests/unit/test_ripeness_openai_compatible.py tests/integration/test_api.py`
+- `bun run --cwd clients/operator-console test`
+- `uv run pytest -q`
+- `go test ./services/api-gateway/...`
+- `bun run --cwd clients/operator-console typecheck`
+- `bun run --cwd clients/operator-console generate`
+- `uv lock`
+
+补充说明：
+
+- `bun generate` 仍存在 Google Fonts 元数据拉取超时告警和前端 chunk 偏大告警，但本轮成熟度能力接入不受影响，静态产物已正常生成。

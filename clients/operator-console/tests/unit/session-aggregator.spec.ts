@@ -11,7 +11,8 @@ function detection(trackId: number | null): Detection {
     bbox: [0, 0, 10, 10],
     class_name: 'camellia_oleifera_fruit',
     confidence: 0.9,
-    track_id: trackId
+    track_id: trackId,
+    ripeness: null
   }
 }
 

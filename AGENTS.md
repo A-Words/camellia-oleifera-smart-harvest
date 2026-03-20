@@ -10,7 +10,7 @@
 
 - 仓库当前唯一有效目标：油茶智能采摘辅助系统。
 - 三层能力基线：
-  - `recognition`：单果检测基线，当前主线输出油茶果目标框与数量
+  - `recognition`：单果检测 + 多模态成熟度识别基线，当前主线输出油茶果目标框、数量与成熟度三态
   - `decision`：采摘路径与作业顺序决策
   - `operations`：作业管理与数据平台
 - 默认调用链：
@@ -53,6 +53,8 @@
   - 绝对路径原样使用
   - 相对配置文件目录
   - 相对仓库根目录
+- 若启用多模态成熟度识别，还需提供：
+  - 环境变量 `CAMELLIA_VLM_API_KEY`
 
 ### 4.3 启动服务
 
@@ -113,6 +115,8 @@
   - `GET /v1/health`
   - `POST /v1/recognition/image`
   - `GET /v1/recognition/stream`
+- 当前识别结果字段主线为：
+  - `Detection`: `bbox`、`class_name`、`confidence`、`track_id`、`ripeness`
 - `decision` 与 `operations` 目前允许只有目录、页面和类型骨架。
 
 ## 7. 提交前检查

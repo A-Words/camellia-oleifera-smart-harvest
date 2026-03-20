@@ -22,6 +22,13 @@ class ModelConfig(BaseModel):
     conf_threshold: float = Field(default=0.25, ge=0.0, le=1.0)
     nms_iou: float = Field(default=0.45, ge=0.0, le=1.0)
     device: str = "auto"
+    ripeness_enabled: bool = False
+    ripeness_adapter: str = "openai_compatible"
+    vlm_base_url: str = "https://api.openai.com/v1"
+    vlm_model: str = ""
+    vlm_timeout_s: float = Field(default=15.0, gt=0.0)
+    vlm_batch_size: int = Field(default=4, ge=1)
+    vlm_crop_padding_ratio: float = Field(default=0.12, ge=0.0, le=0.5)
 
 
 class ServiceConfig(BaseModel):
