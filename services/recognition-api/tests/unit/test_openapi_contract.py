@@ -64,6 +64,15 @@ def test_new_paths_exist_and_operation_ids_are_unique() -> None:
     assert "/v1/recognition/stream" in paths
     assert "/v1/decision/recommendation" in paths
     assert "/v1/decision/history" in paths
+    assert "/v1/decision/observations" in paths
+    assert "/v1/decision/plans" in paths
+    assert "/v1/decision/plans/{plan_id}" in paths
+    assert "/v1/operations/plots" in paths
+    assert "/v1/operations/trees" in paths
+    assert "/v1/operations/plots/{plot_id}/trees" in paths
+    assert "/v1/operations/trees/{tree_id}" in paths
+    assert "/v1/operations/work-orders" in paths
+    assert "/v1/operations/work-orders/{work_order_id}" in paths
 
     operation_ids: list[str] = []
     for methods in paths.values():
@@ -99,13 +108,22 @@ def test_decision_endpoints_declare_auth_and_schema() -> None:
 
     recommend = doc["paths"]["/v1/decision/recommendation"]["post"]
     history = doc["paths"]["/v1/decision/history"]["get"]
+    observations = doc["paths"]["/v1/decision/observations"]["post"]
+    plans = doc["paths"]["/v1/decision/plans"]["post"]
+    work_orders = doc["paths"]["/v1/operations/work-orders"]["post"]
 
     assert {"ApiKeyAuth": []} in recommend["security"]
     assert {"ApiKeyAuth": []} in history["security"]
+    assert {"ApiKeyAuth": []} in observations["security"]
+    assert {"ApiKeyAuth": []} in plans["security"]
+    assert {"ApiKeyAuth": []} in work_orders["security"]
 
     request_props = doc["components"]["schemas"]["DecisionSnapshotRequest"]["properties"]
     summary_props = doc["components"]["schemas"]["DecisionSummary"]["properties"]
     skip_props = doc["components"]["schemas"]["SkipItem"]["properties"]
+    observation_props = doc["components"]["schemas"]["ObservationCreateRequest"]["properties"]
+    plan_props = doc["components"]["schemas"]["DecisionPlan"]["properties"]
+    work_order_status = doc["components"]["schemas"]["WorkOrderStatus"]["enum"]
 
     assert list(request_props.keys()) == [
         "frame_index",
@@ -115,7 +133,10 @@ def test_decision_endpoints_declare_auth_and_schema() -> None:
         "detections",
     ]
     assert "main_priority_zone" in summary_props
-    assert skip_props["skip_reason"]["enum"] == ["not_ready", "occluded_unclear"]
+    assert skip_props["skip_reason"]["enum"] == ["not_ready", "occluded_unclear", "manual_skip"]
+    assert list(observation_props.keys())[:2] == ["tree_id", "captured_at"]
+    assert "tree_recommendations" in plan_props
+    assert work_order_status == ["pending", "in_progress", "completed", "skipped"]
 
 
 def test_prd_field_names_match_contract() -> None:
@@ -130,6 +151,10 @@ def test_prd_field_names_match_contract() -> None:
         "/v1/recognition/stream",
         "/v1/decision/recommendation",
         "/v1/decision/history",
+        "/v1/decision/observations",
+        "/v1/decision/plans",
+        "/v1/operations/plots",
+        "/v1/operations/work-orders",
     ]
     for token in required_tokens:
         assert token in prd_text

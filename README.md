@@ -3,8 +3,8 @@
 油茶智能采摘辅助系统仓库，当前基线围绕三层能力组织：
 
 - `recognition`：油茶果目标检测 + 多模态成熟度识别基线
-- `decision`：采摘路径与作业顺序决策 MVP
-- `operations`：地块、树木、进度与效率管理骨架
+- `decision`：地块级采摘路径、树内作业顺序与人工调整决策中心
+- `operations`：地块/树木建档与树级作业单执行闭环
 
 当前可运行链路保持为：
 
@@ -92,7 +92,7 @@ sh tooling/scripts/stack.sh --app-host 127.0.0.1 --app-port 8000 --gateway-confi
 
 ## 当前公开接口
 
-当前契约只保留最小可运行基线：
+当前契约公开接口基线：
 
 - `GET /healthz`
 - `GET /v1/health`
@@ -100,6 +100,19 @@ sh tooling/scripts/stack.sh --app-host 127.0.0.1 --app-port 8000 --gateway-confi
 - `GET /v1/recognition/stream`（WebSocket）
 - `POST /v1/decision/recommendation`
 - `GET /v1/decision/history`
+- `POST /v1/decision/observations`
+- `GET /v1/decision/observations`
+- `POST /v1/decision/plans`
+- `GET /v1/decision/plans`
+- `PATCH /v1/decision/plans/{plan_id}`
+- `POST /v1/operations/plots`
+- `GET /v1/operations/plots`
+- `POST /v1/operations/trees`
+- `GET /v1/operations/plots/{plot_id}/trees`
+- `PATCH /v1/operations/trees/{tree_id}`
+- `POST /v1/operations/work-orders`
+- `GET /v1/operations/work-orders`
+- `PATCH /v1/operations/work-orders/{work_order_id}`
 
 当前 `Detection` 结果在保留目标框和数量字段的同时，支持返回成熟度三态 `ripeness`：
 
@@ -142,8 +155,9 @@ sh tooling/scripts/verify.sh
 - 识别链路已迁到新目录和新路由。
 - 当前活跃识别契约基于单类 `camellia_oleifera_fruit` 检测，并支持通过外部多模态 VLM 对检测框补全成熟度三态。
 - `/recognition` 实时页当前会将流式识别返回的目标框叠加到摄像头画面上，并优先展示 `可采 / 暂不可采 / 遮挡不清`；异步判定尚未完成时显示 `判定中`。
-- `/decision` 当前会消费最近一帧识别快照，按“可采优先 + 起点就近”生成区域优先级、采摘顺序和跳过建议，并展示最近 10 条决策历史。
+- `/recognition` 当前要求先绑定地块和树木，最新识别快照会以树级 `TreeObservation` 归档到网关数据库。
+- `/decision` 当前以地块为上下文生成整块地计划，展示树间路线、树内区域优先级、采摘顺序、跳过建议，并支持人工调整后生成树级作业单。
 - 原始训练数据已落位到 `mlops/data/raw/camellia-oleifera-fruit-yolo/`，当前训练基线数据集位于 `mlops/data/camellia-oleifera/`。
-- 网关当前会将决策请求与响应写入配置中声明的数据库，并在启动时自动初始化 `decision_history` 表。
-- `operations` 当前仍提供页面和目录骨架，后续迭代补充领域实现。
+- 网关当前会自动初始化 `plots`、`trees`、`tree_observations`、`decision_plans`、`decision_plan_trees`、`work_orders`、`decision_history` 等表，并保留旧树级即时推荐接口作为兼容入口。
+- `/operations` 当前已提供地块/树木建档、树状态切换、作业单筛选和状态推进页面。
 - 旧的 `batch / trace / dashboard` 语义已退出主线，不再作为现行接口和页面。

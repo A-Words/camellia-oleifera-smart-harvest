@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/config"
+	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/store"
 )
 
 func TestRepositorySaveAndListRecent(t *testing.T) {
-	repo, err := NewRepository(config.DBConfig{
+	db, err := store.Open(config.DBConfig{
 		Driver:           "sqlite",
 		DSN:              filepath.Join(t.TempDir(), "decision.db"),
 		MaxOpenConns:     1,
@@ -17,9 +18,11 @@ func TestRepositorySaveAndListRecent(t *testing.T) {
 		ConnMaxLifetimeS: 60,
 	})
 	if err != nil {
-		t.Fatalf("NewRepository failed: %v", err)
+		t.Fatalf("store.Open failed: %v", err)
 	}
-	defer repo.Close()
+	defer db.Close()
+
+	repo := NewRepository(db)
 
 	harvestable := RipenessHarvestable
 	request := SnapshotRequest{
@@ -38,13 +41,13 @@ func TestRepositorySaveAndListRecent(t *testing.T) {
 		},
 	}
 
-	if err := repo.Save(context.Background(), request, response); err != nil {
-		t.Fatalf("Save failed: %v", err)
+	if err := repo.SaveTreeHistory(context.Background(), request, response); err != nil {
+		t.Fatalf("SaveTreeHistory failed: %v", err)
 	}
 
-	items, err := repo.ListRecent(context.Background(), 10)
+	items, err := repo.ListRecentTreeHistory(context.Background(), 10)
 	if err != nil {
-		t.Fatalf("ListRecent failed: %v", err)
+		t.Fatalf("ListRecentTreeHistory failed: %v", err)
 	}
 
 	if len(items) != 1 {

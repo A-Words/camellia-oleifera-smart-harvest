@@ -167,6 +167,19 @@ func TestAuthRequiresKeyForProtectedReadPath(t *testing.T) {
 		{name: "recognition stream", method: http.MethodGet, path: "/v1/recognition/stream"},
 		{name: "decision recommendation", method: http.MethodPost, path: "/v1/decision/recommendation"},
 		{name: "decision history", method: http.MethodGet, path: "/v1/decision/history"},
+		{name: "decision observations post", method: http.MethodPost, path: "/v1/decision/observations"},
+		{name: "decision observations get", method: http.MethodGet, path: "/v1/decision/observations?tree_id=tree-1"},
+		{name: "decision plans post", method: http.MethodPost, path: "/v1/decision/plans"},
+		{name: "decision plans get", method: http.MethodGet, path: "/v1/decision/plans?plot_id=plot-1"},
+		{name: "decision plan patch", method: http.MethodPatch, path: "/v1/decision/plans/plan-1"},
+		{name: "operations plots post", method: http.MethodPost, path: "/v1/operations/plots"},
+		{name: "operations plots get", method: http.MethodGet, path: "/v1/operations/plots"},
+		{name: "operations trees post", method: http.MethodPost, path: "/v1/operations/trees"},
+		{name: "operations plot trees get", method: http.MethodGet, path: "/v1/operations/plots/plot-1/trees"},
+		{name: "operations tree patch", method: http.MethodPatch, path: "/v1/operations/trees/tree-1"},
+		{name: "operations work orders post", method: http.MethodPost, path: "/v1/operations/work-orders"},
+		{name: "operations work orders get", method: http.MethodGet, path: "/v1/operations/work-orders?plot_id=plot-1"},
+		{name: "operations work order patch", method: http.MethodPatch, path: "/v1/operations/work-orders/work-order-1"},
 	}
 
 	for _, tt := range tests {

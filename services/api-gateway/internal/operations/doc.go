@@ -1,4 +1,4 @@
 package operations
 
-// Package operations reserves the gateway slice for field operations and
-// management platform orchestration.
+// Package operations implements plot/tree archive management and
+// tree-level work-order execution flows for the gateway.

@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/decision"
+	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/operations"
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/config"
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/middleware"
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/proxy"
+	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/store"
 	systemhttp "github.com/camellia-oleifera-smart-harvest/api-gateway/internal/system"
 )
 
@@ -56,22 +58,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	decisionRepo, err := decision.NewRepository(cfg.DB)
+	db, err := store.Open(cfg.DB)
 	if err != nil {
-		logger.Error("failed to create decision repository", "error", err)
+		logger.Error("failed to open gateway data store", "error", err)
 		os.Exit(1)
 	}
 	defer func() {
-		if err := decisionRepo.Close(); err != nil {
-			logger.Error("failed to close decision repository", "error", err)
+		if err := db.Close(); err != nil {
+			logger.Error("failed to close gateway data store", "error", err)
 		}
 	}()
 
+	decisionRepo := decision.NewRepository(db)
+	operationsRepo := operations.NewRepository(db)
 	decisionHandler := decision.NewHandler(decisionRepo, logger)
+	operationsHandler := operations.NewHandler(operationsRepo, logger)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", systemhttp.Health(cfg.Upstream, logger))
 	decisionHandler.Register(mux)
+	operationsHandler.Register(mux)
 	mux.Handle("/", rp)
 
 	var h http.Handler = mux

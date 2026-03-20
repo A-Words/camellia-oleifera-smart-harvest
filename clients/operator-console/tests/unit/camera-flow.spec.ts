@@ -53,10 +53,10 @@ afterEach(() => {
 })
 
 describe('camera flow', () => {
-  it('keeps start button clickable even when no devices are listed', () => {
+  it('disables the start button when the current tree binding is incomplete', () => {
     const source = readFileSync(new URL('../../app/components/recognition/RecognitionCameraStage.vue', import.meta.url), 'utf8')
-    expect(source).toContain(':disabled="cameraLoading"')
-    expect(source).not.toContain(':disabled="!hasDevices"')
+    expect(source).toContain(':disabled="cameraLoading || canStartRecognition === false"')
+    expect(source).toContain('开始识别前需先绑定树木')
   })
 
   it('renders a dedicated overlay layer and avoids object-cover drift', () => {

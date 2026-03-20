@@ -9,6 +9,8 @@ const props = defineProps<{
   isRecognizing: boolean
   cameraLoading: boolean
   currentFrame: FrameResult | null
+  canStartRecognition?: boolean
+  startDisabledReason?: string
   cameraError?: string
   streamError?: string
 }>()
@@ -122,7 +124,7 @@ function syncVideoSize() {
           color="primary"
           icon="i-lucide-play"
           :loading="cameraLoading"
-          :disabled="cameraLoading"
+          :disabled="cameraLoading || canStartRecognition === false"
           label="开始识别"
           @click="emit('start')"
         />
@@ -143,6 +145,15 @@ function syncVideoSize() {
         icon="i-lucide-camera-off"
         title="未检测到摄像头"
         description="可先点击开始识别触发授权，再刷新设备列表。"
+      />
+
+      <UAlert
+        v-if="canStartRecognition === false && startDisabledReason"
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-map-pinned"
+        title="开始识别前需先绑定树木"
+        :description="startDisabledReason"
       />
 
       <UAlert
@@ -213,6 +224,8 @@ function syncVideoSize() {
           </div>
         </div>
       </div>
+
+      <slot />
     </div>
   </UCard>
 </template>

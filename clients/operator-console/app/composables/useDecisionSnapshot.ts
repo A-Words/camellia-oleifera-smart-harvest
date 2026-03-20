@@ -10,13 +10,13 @@ interface SnapshotDimensions {
 export function useDecisionSnapshot() {
   const snapshot = useState<DecisionSnapshotRequest | null>('decision-snapshot', () => null)
   const snapshotSignature = useState<string>('decision-snapshot-signature', () => '')
-  const lastSubmittedSignature = useState<string>('decision-last-submitted-signature', () => '')
+  const lastArchivedSignature = useState<string>('decision-last-archived-signature', () => '')
 
   const hasSnapshot = computed(() => snapshot.value !== null)
-  const shouldAutoSubmit = computed(() =>
+  const hasPendingObservation = computed(() =>
     Boolean(snapshot.value) &&
     snapshotSignature.value.length > 0 &&
-    snapshotSignature.value !== lastSubmittedSignature.value
+    snapshotSignature.value !== lastArchivedSignature.value
   )
 
   function updateSnapshotFromFrame(frame: FrameResult | null, dimensions: SnapshotDimensions) {
@@ -29,23 +29,24 @@ export function useDecisionSnapshot() {
     snapshotSignature.value = createDecisionSnapshotSignature(nextSnapshot)
   }
 
-  function markSubmitted() {
-    lastSubmittedSignature.value = snapshotSignature.value
+  function markArchived() {
+    lastArchivedSignature.value = snapshotSignature.value
   }
 
   function clearSnapshot() {
     snapshot.value = null
     snapshotSignature.value = ''
+    lastArchivedSignature.value = ''
   }
 
   return {
     snapshot,
     snapshotSignature,
-    lastSubmittedSignature,
+    lastArchivedSignature,
     hasSnapshot,
-    shouldAutoSubmit,
+    hasPendingObservation,
     updateSnapshotFromFrame,
-    markSubmitted,
+    markArchived,
     clearSnapshot
   }
 }

@@ -72,3 +72,108 @@ type HistoryItem struct {
 type HistoryResponse struct {
 	Items []HistoryItem `json:"items"`
 }
+
+type ObservationRequest struct {
+	TreeID      string      `json:"tree_id"`
+	CapturedAt  string      `json:"captured_at"`
+	FrameIndex  int         `json:"frame_index"`
+	TimestampMS int64       `json:"timestamp_ms"`
+	FrameWidth  int         `json:"frame_width"`
+	FrameHeight int         `json:"frame_height"`
+	Detections  []Detection `json:"detections"`
+}
+
+type Observation struct {
+	ObservationID string      `json:"observation_id"`
+	TreeID        string      `json:"tree_id"`
+	CapturedAt    string      `json:"captured_at"`
+	FrameIndex    int         `json:"frame_index"`
+	TimestampMS   int64       `json:"timestamp_ms"`
+	FrameWidth    int         `json:"frame_width"`
+	FrameHeight   int         `json:"frame_height"`
+	Detections    []Detection `json:"detections"`
+}
+
+type ObservationListResponse struct {
+	Items []Observation `json:"items"`
+}
+
+type PlanRequest struct {
+	PlotID string `json:"plot_id"`
+}
+
+type PlanSummary struct {
+	TotalTrees              int `json:"total_trees"`
+	ReadyTrees              int `json:"ready_trees"`
+	PendingObservationTrees int `json:"pending_observation_trees"`
+	TotalHarvestableCount   int `json:"total_harvestable_count"`
+}
+
+type PlanTreeSequenceItem struct {
+	TreeID                             string  `json:"tree_id"`
+	TreeCode                           string  `json:"tree_code"`
+	PriorityOrder                      int     `json:"priority_order"`
+	HarvestableCount                   int     `json:"harvestable_count"`
+	HarvestableConfidenceWeightedScore float64 `json:"harvestable_confidence_weighted_score"`
+	DistanceFromPrevious               float64 `json:"distance_from_previous"`
+	Status                             string  `json:"status"`
+}
+
+type TreeRecommendation struct {
+	TreeID         string             `json:"tree_id"`
+	TreeCode       string             `json:"tree_code"`
+	ObservationID  *string            `json:"observation_id"`
+	Status         string             `json:"status"`
+	Summary        Summary            `json:"summary"`
+	ZonePriorities []ZonePriority     `json:"zone_priorities"`
+	PickSequence   []PickSequenceItem `json:"pick_sequence"`
+	SkipItems      []SkipItem         `json:"skip_items"`
+}
+
+type ManualOverride struct {
+	TreeSequence  []string       `json:"tree_sequence"`
+	TreeOverrides []TreeOverride `json:"tree_overrides"`
+}
+
+type DecisionPlan struct {
+	PlanID              string                 `json:"plan_id"`
+	PlotID              string                 `json:"plot_id"`
+	GeneratedAt         string                 `json:"generated_at"`
+	ManualOverride      bool                   `json:"manual_override"`
+	ManualOverrideState ManualOverride         `json:"manual_override_state"`
+	Summary             PlanSummary            `json:"summary"`
+	TreeSequence        []PlanTreeSequenceItem `json:"tree_sequence"`
+	TreeRecommendations []TreeRecommendation   `json:"tree_recommendations"`
+}
+
+type DecisionPlanListResponse struct {
+	Items []DecisionPlan `json:"items"`
+}
+
+type TreeOverride struct {
+	TreeID                        string   `json:"tree_id"`
+	ZoneOrder                     []string `json:"zone_order"`
+	PickSequenceDetectionIndices  []int    `json:"pick_sequence_detection_indices"`
+	ManualSkippedDetectionIndices []int    `json:"manual_skipped_detection_indices"`
+}
+
+type UpdatePlanRequest struct {
+	TreeSequence  []string       `json:"tree_sequence"`
+	TreeOverrides []TreeOverride `json:"tree_overrides"`
+}
+
+type TreeMeta struct {
+	TreeID   string
+	TreeCode string
+	PlotID   string
+	RowIndex int
+	ColIndex int
+	X        float64
+	Y        float64
+	Status   string
+}
+
+type latestObservation struct {
+	Tree        TreeMeta
+	Observation *Observation
+}

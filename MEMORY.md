@@ -453,3 +453,93 @@
 补充说明：
 
 - `bun generate` 仍存在 Google Fonts 元数据拉取超时告警与前端 chunk 偏大告警，但本轮决策 MVP 产物已正常生成。
+
+## 2026-03-20 采摘路径与作业决策完整版落地记录
+
+本轮已将第二层 `decision` 和第三层 `operations` 从“MVP + 骨架”推进为“plot/tree 归档 + 地块级计划 + 树级作业单执行”的完整闭环。此前 2026-03-20 的“决策 MVP”记录仍保留作为历史阶段说明；当前新的活跃基线应以本节为准。
+
+### 当前完整业务闭环
+
+- `/recognition` 当前必须先选择 `plot` 和 `tree`，再开始实时识别。
+- 最近一帧识别快照当前既保留在前端共享状态中，也可通过网关归档为该树的 `TreeObservation`。
+- `/decision` 当前不再依赖匿名快照作为主线，而是以一个 `plot` 下各棵树最近一次 observation 为输入，生成整块地的 `DecisionPlan`。
+- `/decision` 当前支持：
+  - 树间路线排序
+  - 树内区域优先级
+  - 果实采摘顺序
+  - 人工调整树顺序
+  - 人工调整区域顺序
+  - 人工调整果实顺序
+  - 将目标标记为 `manual_skip`
+- `/operations` 当前已成为执行面板，支持：
+  - 创建地块档案
+  - 创建树档案
+  - 切换树状态 `active / disabled`
+  - 查看树级 `WorkOrder`
+  - 推进 `pending / in_progress / completed / skipped`
+
+### 当前接口与存储基线
+
+- 决策域当前新增并生效的接口：
+  - `POST /v1/decision/observations`
+  - `GET /v1/decision/observations`
+  - `POST /v1/decision/plans`
+  - `GET /v1/decision/plans`
+  - `PATCH /v1/decision/plans/{plan_id}`
+- 作业域当前新增并生效的接口：
+  - `POST /v1/operations/plots`
+  - `GET /v1/operations/plots`
+  - `POST /v1/operations/trees`
+  - `GET /v1/operations/plots/{plot_id}/trees`
+  - `PATCH /v1/operations/trees/{tree_id}`
+  - `POST /v1/operations/work-orders`
+  - `GET /v1/operations/work-orders`
+  - `PATCH /v1/operations/work-orders/{work_order_id}`
+- 旧接口：
+  - `POST /v1/decision/recommendation`
+  - `GET /v1/decision/history`
+  当前仍保留，但语义已降级为“树级即时推荐 / 审计记录”，不再代表完整决策主入口。
+- 网关当前启动时会自动初始化以下表：
+  - `plots`
+  - `trees`
+  - `tree_observations`
+  - `decision_plans`
+  - `decision_plan_trees`
+  - `work_orders`
+  - `decision_history`
+
+### 当前共享词汇基线
+
+- 决策区域共享枚举继续以 `shared/domain/decision-zones.json` 为准。
+- 跳过原因共享枚举当前扩展为：
+  - `not_ready`
+  - `occluded_unclear`
+  - `manual_skip`
+- 当前新增共享枚举文件：
+  - `shared/domain/tree-statuses.json`
+  - `shared/domain/work-order-statuses.json`
+  - `shared/domain/tree-recommendation-statuses.json`
+
+### 当前前端页面基线
+
+- `/recognition` 当前会加载地块与树木清单，未绑定树木时禁止开始识别。
+- `/decision` 当前固定展示三栏：
+  - 左侧：地块上下文与树优先级路线
+  - 中间：当前树的区域优先级、采摘顺序和跳过建议
+  - 右侧：人工调整与作业单下发
+- `/operations` 当前固定展示三块：
+  - 地块档案
+  - 树木档案
+  - 树级作业单执行面板
+
+### 本次校验
+
+- `bun run --cwd clients/operator-console typecheck`
+- `bun run --cwd clients/operator-console test`
+- `bun run --cwd clients/operator-console generate`
+- `go test ./services/api-gateway/...`
+- `uv run pytest -q services/recognition-api/tests/unit/test_openapi_contract.py tests/integration/test_api.py`
+
+补充说明：
+
+- `bun generate` 本轮仍出现 Google Fonts 元数据拉取超时告警、chunk 偏大告警和 Nitro 外部依赖告警，但静态生成已成功完成，不阻塞当前完整版闭环基线。

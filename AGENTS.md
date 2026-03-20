@@ -11,8 +11,8 @@
 - 仓库当前唯一有效目标：油茶智能采摘辅助系统。
 - 三层能力基线：
   - `recognition`：单果检测 + 多模态成熟度识别基线，当前主线输出油茶果目标框、数量与成熟度三态
-  - `decision`：采摘路径与作业顺序决策，当前已落地识别快照驱动的规则决策 MVP 与历史记录
-  - `operations`：作业管理与数据平台
+  - `decision`：采摘路径与作业顺序决策，当前已落地 plot/tree observation、plot 级计划与人工调整
+  - `operations`：作业管理与数据平台，当前已落地 plot/tree 档案与树级作业单状态流转
 - 默认调用链：
   - `clients/operator-console -> services/api-gateway -> services/recognition-api`
 
@@ -117,12 +117,28 @@
   - `GET /v1/recognition/stream`
   - `POST /v1/decision/recommendation`
   - `GET /v1/decision/history`
+  - `POST /v1/decision/observations`
+  - `GET /v1/decision/observations`
+  - `POST /v1/decision/plans`
+  - `GET /v1/decision/plans`
+  - `PATCH /v1/decision/plans/{plan_id}`
+  - `POST /v1/operations/plots`
+  - `GET /v1/operations/plots`
+  - `POST /v1/operations/trees`
+  - `GET /v1/operations/plots/{plot_id}/trees`
+  - `PATCH /v1/operations/trees/{tree_id}`
+  - `POST /v1/operations/work-orders`
+  - `GET /v1/operations/work-orders`
+  - `PATCH /v1/operations/work-orders/{work_order_id}`
 - 当前识别结果字段主线为：
   - `Detection`: `bbox`、`class_name`、`confidence`、`track_id`、`ripeness`
 - 当前决策结果字段主线为：
   - `DecisionSnapshotRequest`: `frame_index`、`timestamp_ms`、`frame_width`、`frame_height`、`detections`
   - `DecisionRecommendationResponse`: `decision_id`、`created_at`、`summary`、`zone_priorities`、`pick_sequence`、`skip_items`
-- `operations` 目前仍允许只有目录、页面和类型骨架。
+- 当前完整作业闭环字段主线还包括：
+  - `TreeObservation`: `observation_id`、`tree_id`、`captured_at`、`frame_index`、`frame_width`、`frame_height`、`detections`
+  - `DecisionPlan`: `plan_id`、`plot_id`、`generated_at`、`tree_sequence`、`tree_recommendations`、`manual_override`
+  - `WorkOrder`: `work_order_id`、`plot_id`、`tree_id`、`plan_id`、`status`、`zone_priorities`、`pick_sequence`、`skip_items`
 
 ## 7. 提交前检查
 
@@ -131,7 +147,9 @@
 - `tooling/config/*.yaml.example` 仍可直接复制使用。
 - `shared/contracts/openapi.yaml` 与 `services/api-gateway`、`services/recognition-api`、`clients/operator-console` 字段一致。
 - 前端调用链未偏离：`operator-console -> api-gateway -> recognition-api`
-- 决策页默认消费识别页持有的最近快照，不应绕过网关重复直连识别服务。
+- `/recognition` 必须先绑定 plot/tree，再归档 observation。
+- `/decision` 必须以 plot 为上下文生成计划，不应绕过网关重复直连识别服务。
+- `/operations` 必须能看到 plot/tree 档案与 work order 状态流。
 - 前端质量门禁通过：`typecheck`、`test`、`generate`
 - 测试执行情况已记录。
 

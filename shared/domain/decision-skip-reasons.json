@@ -1,6 +1,7 @@
 {
   "skip_reasons": [
     "not_ready",
-    "occluded_unclear"
+    "occluded_unclear",
+    "manual_skip"
   ]
 }

@@ -11,12 +11,13 @@ import (
 	"testing"
 
 	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/config"
+	"github.com/camellia-oleifera-smart-harvest/api-gateway/internal/platform/store"
 )
 
 func newTestHandler(t *testing.T) *Handler {
 	t.Helper()
 
-	repo, err := NewRepository(config.DBConfig{
+	db, err := store.Open(config.DBConfig{
 		Driver:           "sqlite",
 		DSN:              filepath.Join(t.TempDir(), "decision.db"),
 		MaxOpenConns:     1,
@@ -24,13 +25,13 @@ func newTestHandler(t *testing.T) *Handler {
 		ConnMaxLifetimeS: 60,
 	})
 	if err != nil {
-		t.Fatalf("NewRepository failed: %v", err)
+		t.Fatalf("store.Open failed: %v", err)
 	}
 	t.Cleanup(func() {
-		_ = repo.Close()
+		_ = db.Close()
 	})
 
-	return NewHandler(repo, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	return NewHandler(NewRepository(db), slog.New(slog.NewTextHandler(io.Discard, nil)))
 }
 
 func TestRecommendationHandlerSuccess(t *testing.T) {

@@ -1,0 +1,8 @@
+{
+  "work_order_statuses": [
+    "pending",
+    "in_progress",
+    "completed",
+    "skipped"
+  ]
+}
