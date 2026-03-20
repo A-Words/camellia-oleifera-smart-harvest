@@ -134,6 +134,10 @@ sh tooling/scripts/eval.sh --data mlops/data/camellia-oleifera/data.yaml --exp c
 - 模型：`mlops/artifacts/models/`
 - 指标：`mlops/artifacts/metrics/`
 
+数据集引用：
+
+- Zhou, Lei; Jin, Shouxiang; Wang, Jinpeng; Zhang, Huichun; Shi, Minghong; Zhou, Hongping (2024), "Camellia oleifera fruit detection dataset", Mendeley Data, V1, doi: [10.17632/4s9xjc6zjf.1](https://doi.org/10.17632/4s9xjc6zjf.1)
+
 ## 质量检查
 
 ```bash
