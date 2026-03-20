@@ -543,3 +543,52 @@
 补充说明：
 
 - `bun generate` 本轮仍出现 Google Fonts 元数据拉取超时告警、chunk 偏大告警和 Nitro 外部依赖告警，但静态生成已成功完成，不阻塞当前完整版闭环基线。
+
+## 2026-03-20 前端产品化文案收口记录
+
+本轮已对 `clients/operator-console` 完成一轮“产品态文案 + 显示层 + 遗留组件”收口，目标是把前端从联调界面语气调整为面向现场操作员的已落地产品界面；本轮不涉及网关、识别服务、OpenAPI 或页面主流程改动。
+
+### 当前前端文案基线
+
+- `/recognition` 当前已不再使用“当前主线”“后续补强”等开发态表述。
+- `/recognition` 当前将“树观测 / 快照 / summary 事件”等偏研发说法收口为：
+  - 树级识别记录
+  - 保存当前树记录
+  - 识别服务累计统计
+- `/decision` 当前已不再向用户直接暴露 `Decision Center`、`ready 树`、`observation`、`active 树木` 等页面文案。
+- `/decision` 当前对用户固定使用“识别记录 / 已纳入计划 / 待补记录 / 作业任务”等业务表达。
+- `/operations` 当前页头、状态筛选、状态按钮和输入提示都已切到中文业务文案，不再直接展示 `pending / in_progress / completed / skipped / active / disabled` 作为前端选项文本。
+- 顶部导航标题当前已收口为中文产品名：
+  - `油茶采摘助手`
+
+### 当前显示层基线
+
+- `clients/operator-console/app/utils/decision-presenter.ts` 当前新增并生效：
+  - `formatConfidencePercent`
+  - `buildTreeStatusOptions`
+  - `buildWorkOrderStatusOptions`
+- 当前树状态前端显示词汇已更新为：
+  - `active -> 启用中`
+  - `disabled -> 已停用`
+- 当前树推荐状态前端显示词汇已更新为：
+  - `ready -> 已纳入计划`
+  - `pending_observation -> 待补记录`
+
+### 当前遗留组件清理基线
+
+- 以下未被主页面引用的旧组件已从主线删除：
+  - `clients/operator-console/app/components/decision/DecisionHistoryPanel.vue`
+  - `clients/operator-console/app/components/decision/DecisionPlaceholderPanel.vue`
+  - `clients/operator-console/app/components/decision/DecisionResultPanel.vue`
+  - `clients/operator-console/app/components/operations/OperationsPlaceholderPanel.vue`
+
+### 本次前端校验
+
+- `bun run --cwd clients/operator-console test`
+- `bun run --cwd clients/operator-console typecheck`
+- `bun run --cwd clients/operator-console generate`
+
+补充说明：
+
+- 本轮 `bun test` 已在新增文案回归测试后重新执行并通过，共 `10` 个测试文件、`37` 条用例通过。
+- 本轮 `bun generate` 仍出现 Google Fonts 元数据拉取超时告警、chunk 偏大告警和 Nitro 外部依赖告警，但静态生成已成功完成，不阻塞当前前端产品化收口结果。

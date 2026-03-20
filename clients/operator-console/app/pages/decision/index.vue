@@ -22,10 +22,12 @@ import { useDecisionSnapshot } from '~/composables/useDecisionSnapshot'
 import { useGatewayBase } from '~/composables/useGatewayBase'
 import { useHarvestContext } from '~/composables/useHarvestContext'
 import {
+  formatConfidencePercent,
   formatDecisionSkipReason,
   formatDecisionTimestamp,
   formatDecisionZoneLabel,
-  formatTreeRecommendationStatus
+  formatTreeRecommendationStatus,
+  formatWorkOrderStatus
 } from '~/utils/decision-presenter'
 
 useSeoMeta({
@@ -72,7 +74,7 @@ const plotOptions = computed(() =>
 
 const planOptions = computed(() =>
   plans.value.map((plan) => ({
-    label: `${formatDecisionTimestamp(plan.generated_at)} · ${plan.summary.ready_trees}/${plan.summary.total_trees} 棵已就绪`,
+    label: `${formatDecisionTimestamp(plan.generated_at)} · ${plan.summary.ready_trees}/${plan.summary.total_trees} 棵已纳入计划`,
     value: plan.plan_id
   }))
 )
@@ -425,9 +427,9 @@ async function maybeArchivePendingObservation() {
       }
     })
     decisionSnapshot.markArchived()
-    pageMessage.value = '已自动归档当前树的最新识别快照，可直接生成地块计划。'
+    pageMessage.value = '已自动保存当前树的最新识别记录，可直接生成地块计划。'
   } catch (error) {
-    pageError.value = error instanceof Error ? error.message : '归档当前树观测失败。'
+    pageError.value = error instanceof Error ? error.message : '保存当前树的识别记录失败。'
   } finally {
     isArchivingObservation.value = false
   }
@@ -531,7 +533,7 @@ async function handleCreateWorkOrders() {
     createdWorkOrders.value = response.items || []
     pageMessage.value = response.items.length
       ? `已为当前计划生成 ${response.items.length} 张树级作业单。`
-      : '当前计划没有 ready 树可下发作业单。'
+      : '当前计划里还没有可下发的树级任务。'
   } catch (error) {
     pageError.value = error instanceof Error ? error.message : '生成树级作业单失败。'
   } finally {
@@ -614,13 +616,13 @@ onMounted(async () => {
     <div class="space-y-6">
       <section class="space-y-2">
         <p class="text-xs uppercase tracking-widest text-muted">
-          Decision Center
+          决策
         </p>
         <h1 class="text-2xl font-semibold text-highlighted sm:text-3xl">
           采摘路径与作业决策
         </h1>
         <p class="text-sm text-toned sm:text-base">
-          以地块为上下文，串起树间路线、树内采摘顺序、人工调整和树级作业单下发。
+          以地块为上下文，整理树间路线、树内顺序、人工调整与树级任务下发。
         </p>
       </section>
 
@@ -638,7 +640,7 @@ onMounted(async () => {
         color="success"
         variant="subtle"
         icon="i-lucide-badge-check"
-        title="处理进展"
+        title="已更新"
         :description="pageMessage"
       />
 
@@ -661,7 +663,7 @@ onMounted(async () => {
                     地块上下文
                   </h2>
                   <p class="mt-1 text-xs text-muted">
-                    识别页归档的树观测会自动归入这里的地块计划。
+                    识别页保存的树级识别记录会自动汇总到这里，用来生成当前地块计划。
                   </p>
                 </div>
                 <UBadge :color="selectedPlot ? 'success' : 'neutral'" variant="soft">
@@ -690,7 +692,7 @@ onMounted(async () => {
                 :loading="isPlanLoading"
                 :disabled="!plans.length"
                 icon="i-lucide-route"
-                placeholder="选择已有计划"
+                placeholder="选择历史计划"
                 @update:model-value="(value) => handleSelectPlan((value as string) || '')"
               />
 
@@ -707,7 +709,7 @@ onMounted(async () => {
                   color="neutral"
                   variant="outline"
                   icon="i-lucide-camera"
-                  label="返回识别页补采样"
+                  label="返回识别页补充记录"
                 />
               </div>
 
@@ -717,9 +719,9 @@ onMounted(async () => {
               >
                 <p>地块：{{ selectedPlot?.name || currentPlan.plot_id }}</p>
                 <p class="mt-1">计划生成：{{ formatDecisionTimestamp(currentPlan.generated_at) }}</p>
-                <p class="mt-1">就绪树木：{{ currentPlan.summary.ready_trees }} / {{ currentPlan.summary.total_trees }}</p>
-                <p class="mt-1">待补采样：{{ currentPlan.summary.pending_observation_trees }}</p>
-                <p class="mt-1">整块地可采目标：{{ currentPlan.summary.total_harvestable_count }}</p>
+                <p class="mt-1">已纳入计划树木：{{ currentPlan.summary.ready_trees }} / {{ currentPlan.summary.total_trees }}</p>
+                <p class="mt-1">待补记录树木：{{ currentPlan.summary.pending_observation_trees }}</p>
+                <p class="mt-1">建议采摘目标：{{ currentPlan.summary.total_harvestable_count }}</p>
               </div>
             </div>
           </UCard>
@@ -732,11 +734,11 @@ onMounted(async () => {
                     树优先级路线
                   </h2>
                   <p class="mt-1 text-xs text-muted">
-                    先按成熟度与距离生成路线，再支持人工上移或下移。
+                    系统会先结合成熟度与树间位置生成初始路线，你可以再按现场经验微调。
                   </p>
                 </div>
                 <UBadge :color="orderedTreeSequence.length ? 'success' : 'neutral'" variant="soft">
-                  {{ orderedTreeSequence.length }} 棵进入主路线
+                  {{ orderedTreeSequence.length }} 棵
                 </UBadge>
               </div>
             </template>
@@ -756,10 +758,10 @@ onMounted(async () => {
                       {{ item.priority_order }}. {{ item.tree_code }}
                     </p>
                     <p class="mt-1 text-xs text-muted">
-                      可采 {{ item.harvestable_count }} 枚 · 距上一树 {{ item.distance_from_previous.toFixed(2) }}
+                      建议采摘 {{ item.harvestable_count }} 枚 · 距上一树 {{ item.distance_from_previous.toFixed(2) }}
                     </p>
                     <p class="mt-1 text-xs text-muted">
-                      得分 {{ item.harvestable_confidence_weighted_score.toFixed(2) }} · {{ formatTreeRecommendationStatus(item.status) }}
+                      综合参考分 {{ item.harvestable_confidence_weighted_score.toFixed(2) }} · {{ formatTreeRecommendationStatus(item.status) }}
                     </p>
                   </div>
                   <div class="flex gap-1">
@@ -776,12 +778,12 @@ onMounted(async () => {
               variant="subtle"
               icon="i-lucide-route-off"
               title="当前地块还没有主路线"
-              description="生成计划后，具备观测结果的 active 树木会进入树间路线。"
+              description="生成计划后，已保存识别记录的树木会进入路线排序。"
             />
 
             <div v-if="pendingRecommendations.length" class="mt-4 space-y-2">
               <p class="text-xs font-medium uppercase tracking-widest text-muted">
-                待补采样树木
+                待补记录树木
               </p>
               <div class="flex flex-wrap gap-2">
                 <UBadge
@@ -806,7 +808,7 @@ onMounted(async () => {
                     当前树推荐详情
                   </h2>
                   <p class="mt-1 text-xs text-muted">
-                    中间区聚焦单树内部的区域优先级、果实顺序与跳过建议。
+                    这里聚焦当前树的优先区域、建议顺序与暂缓采摘提示。
                   </p>
                 </div>
                 <UBadge :color="currentRecommendation?.status === 'ready' ? 'success' : 'warning'" variant="soft">
@@ -821,10 +823,10 @@ onMounted(async () => {
                   {{ currentRecommendation.tree_code }}
                 </p>
                 <p class="mt-1 text-xs text-muted">
-                  观测编号：{{ currentRecommendation.observation_id || '待补采样' }}
+                  识别记录：{{ currentRecommendation.observation_id || '待补记录' }}
                 </p>
                 <p class="mt-1 text-xs text-muted">
-                  当前树可采 {{ currentRecommendation.summary.harvestable_count }} 枚，跳过 {{ currentRecommendation.summary.skipped_count }} 枚
+                  建议采摘 {{ currentRecommendation.summary.harvestable_count }} 枚，建议暂缓 {{ currentRecommendation.summary.skipped_count }} 枚
                 </p>
                 <p class="mt-1 text-xs text-muted">
                   主优先区域：{{ formatDecisionZoneLabel(currentRecommendation.summary.main_priority_zone) }}
@@ -836,8 +838,8 @@ onMounted(async () => {
                 color="warning"
                 variant="subtle"
                 icon="i-lucide-scan-search"
-                title="当前树尚未归档观测"
-                description="请回到识别页绑定该树并归档一帧识别结果，这棵树才会进入树内决策。"
+                title="当前树还缺少识别记录"
+                description="请回到识别页绑定该树并保存一帧识别结果，这棵树才会进入树内决策。"
               />
 
               <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-[0.95fr_1.05fr]">
@@ -863,7 +865,7 @@ onMounted(async () => {
                               {{ item.order }}. {{ formatDecisionZoneLabel(item.zone) }}
                             </p>
                             <p class="mt-1 text-xs text-muted">
-                              可采 {{ item.harvestable_count }} 枚 · 距动作起点 {{ item.distance_to_start.toFixed(2) }}
+                              建议采摘 {{ item.harvestable_count }} 枚 · 距起始动作点 {{ item.distance_to_start.toFixed(2) }}
                             </p>
                             <p class="mt-1 text-xs text-muted">
                               {{ item.note }}
@@ -897,7 +899,7 @@ onMounted(async () => {
                           #{{ item.detection_index }} · {{ formatDecisionZoneLabel(item.zone) }}
                         </p>
                         <p class="mt-1 text-xs text-muted">
-                          {{ formatDecisionSkipReason(item.skip_reason) }} · 置信度 {{ item.confidence.toFixed(2) }}
+                          {{ formatDecisionSkipReason(item.skip_reason) }} · 置信度 {{ formatConfidencePercent(item.confidence) }}
                         </p>
                         <p class="mt-1 text-xs text-muted">
                           {{ item.reason }}
@@ -910,8 +912,8 @@ onMounted(async () => {
                       color="success"
                       variant="subtle"
                       icon="i-lucide-circle-check"
-                      title="当前树没有原始跳过项"
-                      description="如果现场判断需要跳过，可在右侧人工调整区把目标标记为人工跳过。"
+                      title="当前树没有系统暂缓项"
+                      description="如果现场判断需要暂缓，可在右侧调整区把目标标记为跳过。"
                     />
                   </div>
                 </div>
@@ -923,11 +925,11 @@ onMounted(async () => {
                         采摘顺序预览
                       </p>
                       <p class="mt-1 text-xs text-muted">
-                        可上移、下移，或标记为人工跳过后再保存计划。
+                        可按现场经验调整顺序，或先标记暂缓后再保存计划。
                       </p>
                     </div>
                     <UBadge :color="currentPendingManualSkipCount ? 'warning' : 'neutral'" variant="soft">
-                      {{ currentPendingManualSkipCount }} 项待人工跳过
+                      {{ currentPendingManualSkipCount }} 项待确认跳过
                     </UBadge>
                   </div>
 
@@ -945,11 +947,11 @@ onMounted(async () => {
                               {{ item.order }}. 目标 #{{ item.detection_index }}
                             </p>
                             <UBadge v-if="item.manualSkipped" color="warning" variant="soft">
-                              人工跳过
+                              已标记跳过
                             </UBadge>
                           </div>
                           <p class="mt-1 text-xs text-muted">
-                            {{ formatDecisionZoneLabel(item.zone) }} · 置信度 {{ item.confidence.toFixed(2) }}
+                            {{ formatDecisionZoneLabel(item.zone) }} · 置信度 {{ formatConfidencePercent(item.confidence) }}
                           </p>
                           <p class="mt-1 text-xs text-muted">
                             {{ item.reason }}
@@ -963,7 +965,7 @@ onMounted(async () => {
                             :color="item.manualSkipped ? 'warning' : 'neutral'"
                             variant="outline"
                             icon="i-lucide-hand"
-                            :label="item.manualSkipped ? '取消跳过' : '人工跳过'"
+                            :label="item.manualSkipped ? '恢复顺序' : '标记跳过'"
                             @click="toggleManualSkip(item.detection_index)"
                           />
                         </div>
@@ -978,7 +980,7 @@ onMounted(async () => {
                     variant="subtle"
                     icon="i-lucide-leaf"
                     title="当前树没有可采目标"
-                    description="当前观测中没有 harvestable 目标，因此不会产生树内采摘顺序。"
+                    description="当前识别记录里没有可采目标，因此暂不生成树内采摘顺序。"
                   />
                 </div>
               </div>
@@ -990,7 +992,7 @@ onMounted(async () => {
               variant="subtle"
               icon="i-lucide-route"
               title="当前还没有地块计划"
-              description="先选择地块并点击“生成整块地计划”，系统会读取各树最近一次 observation 形成路线。"
+              description="先选择地块并点击“生成整块地计划”，系统会根据各树最近一次识别记录整理路线。"
             />
           </UCard>
         </div>
@@ -1004,11 +1006,11 @@ onMounted(async () => {
                     人工调整与下发
                   </h2>
                   <p class="mt-1 text-xs text-muted">
-                    保存树顺序、区域顺序和果实顺序后，再生成树级作业单。
+                    确认树顺序、区域顺序与采摘顺序后，再下发树级作业任务。
                   </p>
                 </div>
                 <UBadge :color="currentPlan?.manual_override ? 'warning' : 'neutral'" variant="soft">
-                  {{ currentPlan?.manual_override ? '已含人工调整' : '未保存人工调整' }}
+                  {{ currentPlan?.manual_override ? '已保存本轮调整' : '沿用系统建议' }}
                 </UBadge>
               </div>
             </template>
@@ -1020,8 +1022,8 @@ onMounted(async () => {
               >
                 <p>当前树：{{ currentRecommendation.tree_code }}</p>
                 <p class="mt-1">地块：{{ selectedPlot?.name || currentPlan?.plot_id || '未选择' }}</p>
-                <p class="mt-1">绑定树档案：{{ treeById[currentRecommendation.tree_id]?.tree_code || currentRecommendation.tree_code }}</p>
-                <p class="mt-1">待人工跳过：{{ currentPendingManualSkipCount }} 项</p>
+                <p class="mt-1">树档案：{{ treeById[currentRecommendation.tree_id]?.tree_code || currentRecommendation.tree_code }}</p>
+                <p class="mt-1">已标记跳过：{{ currentPendingManualSkipCount }} 项</p>
               </div>
 
               <div class="flex flex-wrap gap-2">
@@ -1055,8 +1057,8 @@ onMounted(async () => {
                 color="warning"
                 variant="subtle"
                 icon="i-lucide-save"
-                title="检测到未归档快照"
-                description="点击生成计划前，系统会先自动把当前识别页留下的最新快照归档到当前树。"
+                title="检测到尚未保存的识别画面"
+                description="点击生成计划前，系统会先自动把识别页留下的最新画面保存到当前树。"
               />
             </div>
           </UCard>
@@ -1069,7 +1071,7 @@ onMounted(async () => {
                     最新下发结果
                   </h2>
                   <p class="mt-1 text-xs text-muted">
-                    每棵 ready 树会生成一张作业单，供 `/operations` 推进状态。
+                    每棵可执行的树都会生成一张作业任务，之后可在作业页持续推进状态。
                   </p>
                 </div>
                 <UBadge :color="createdWorkOrders.length ? 'success' : 'neutral'" variant="soft">
@@ -1091,10 +1093,10 @@ onMounted(async () => {
                   作业单：{{ item.work_order_id }}
                 </p>
                 <p class="mt-1 text-xs text-muted">
-                  默认状态：{{ item.status }}
+                  当前状态：{{ formatWorkOrderStatus(item.status) }}
                 </p>
                 <p class="mt-1 text-xs text-muted">
-                  区域 {{ item.zone_priorities.length }} 个 · 采摘顺序 {{ item.pick_sequence.length }} 项
+                  覆盖区域 {{ item.zone_priorities.length }} 个 · 建议顺序 {{ item.pick_sequence.length }} 项
                 </p>
               </div>
             </div>

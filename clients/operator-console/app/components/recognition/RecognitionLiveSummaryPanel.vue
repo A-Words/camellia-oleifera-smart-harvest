@@ -33,11 +33,11 @@ const props = defineProps<{
         color="neutral"
         variant="subtle"
         icon="i-lucide-leaf"
-        title="检测基线说明"
+        title="识别能力说明"
       >
         <template #description>
           <p class="text-sm">
-            当前主线已支持油茶果检测与成熟度判断，识别框会优先展示可采状态，后续再继续补强采摘建议。
+            当前页面已支持油茶果实时检测、成熟度判定和树级识别记录归档，识别框会直接显示可采、暂不可采或遮挡不清。
           </p>
         </template>
       </UAlert>
@@ -48,7 +48,7 @@ const props = defineProps<{
         :ui="{ body: 'px-4 py-3' }"
       >
         <p class="text-xs text-muted">
-          当前帧汇总（frame #{{ currentFrame.frame_index }})
+          当前帧概览（第 {{ currentFrame.frame_index }} 帧）
         </p>
         <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
           <p>总数：{{ currentFrame.frame_summary.total }}</p>
@@ -62,10 +62,10 @@ const props = defineProps<{
         :ui="{ body: 'px-4 py-3' }"
       >
         <p class="text-xs text-muted">
-          服务端会话总量（summary 事件）
+          识别服务累计统计
         </p>
         <p class="mt-1 text-sm text-default">
-          total_detected = {{ serverSummary.total_detected }}
+          累计检测总数 {{ serverSummary.total_detected }}
         </p>
       </UCard>
     </div>

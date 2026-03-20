@@ -88,7 +88,7 @@ function syncVideoSize() {
             实时识别
           </h2>
           <p class="mt-1 text-xs text-muted">
-            通过网关 WebSocket 将油茶果画面发送到识别服务。
+            实时上传当前画面，并返回油茶果检测与成熟度结果。
           </p>
         </div>
         <UBadge :color="isRecognizing ? 'success' : 'neutral'" variant="soft">

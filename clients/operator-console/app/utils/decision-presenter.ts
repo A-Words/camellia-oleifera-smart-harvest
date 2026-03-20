@@ -1,3 +1,6 @@
+import type { TreeRecommendationStatus } from '~/types/decision'
+import type { TreeStatus, WorkOrderStatus } from '~/types/operations'
+
 const ZONE_LABELS: Record<string, string> = {
   upper_left: '上左区域',
   upper_center: '上中区域',
@@ -17,8 +20,8 @@ const SKIP_REASON_LABELS: Record<string, string> = {
 }
 
 const TREE_RECOMMENDATION_STATUS_LABELS: Record<string, string> = {
-  ready: '可进入决策',
-  pending_observation: '待补采样'
+  ready: '已纳入计划',
+  pending_observation: '待补记录'
 }
 
 const WORK_ORDER_STATUS_LABELS: Record<string, string> = {
@@ -29,9 +32,12 @@ const WORK_ORDER_STATUS_LABELS: Record<string, string> = {
 }
 
 const TREE_STATUS_LABELS: Record<string, string> = {
-  active: '启用',
-  disabled: '停用'
+  active: '启用中',
+  disabled: '已停用'
 }
+
+const TREE_STATUS_VALUES: TreeStatus[] = ['active', 'disabled']
+const WORK_ORDER_STATUS_VALUES: WorkOrderStatus[] = ['pending', 'in_progress', 'completed', 'skipped']
 
 export function formatDecisionZoneLabel(zone: string | null | undefined): string {
   if (!zone) {
@@ -54,6 +60,27 @@ export function formatWorkOrderStatus(status: string): string {
 
 export function formatTreeStatus(status: string): string {
   return TREE_STATUS_LABELS[status] || status
+}
+
+export function formatConfidencePercent(value: number): string {
+  if (!Number.isFinite(value)) {
+    return '-'
+  }
+  return `${Math.round(value * 100)}%`
+}
+
+export function buildTreeStatusOptions() {
+  return TREE_STATUS_VALUES.map((value) => ({
+    value,
+    label: formatTreeStatus(value)
+  }))
+}
+
+export function buildWorkOrderStatusOptions() {
+  return WORK_ORDER_STATUS_VALUES.map((value) => ({
+    value,
+    label: formatWorkOrderStatus(value)
+  }))
 }
 
 export function formatDecisionTimestamp(value: string): string {

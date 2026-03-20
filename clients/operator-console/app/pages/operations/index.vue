@@ -15,6 +15,8 @@ import type {
 import { useGatewayBase } from '~/composables/useGatewayBase'
 import { useHarvestContext } from '~/composables/useHarvestContext'
 import {
+  buildTreeStatusOptions,
+  buildWorkOrderStatusOptions,
   formatDecisionTimestamp,
   formatTreeStatus,
   formatWorkOrderStatus
@@ -70,6 +72,12 @@ const plotOptions = computed(() =>
     value: plot.plot_id
   }))
 )
+
+const treeStatusOptions = buildTreeStatusOptions()
+const workOrderStatusOptions = [
+  { value: 'all', label: '全部状态' },
+  ...buildWorkOrderStatusOptions()
+]
 
 const workOrderSummary = computed(() =>
   workOrders.value.reduce<Record<WorkOrderStatus, number>>((accumulator, item) => {
@@ -267,13 +275,13 @@ onMounted(async () => {
     <div class="space-y-6">
       <section class="space-y-2">
         <p class="text-xs uppercase tracking-widest text-muted">
-          Operations
+          作业
         </p>
         <h1 class="text-2xl font-semibold text-highlighted sm:text-3xl">
           地块建档与作业执行
         </h1>
         <p class="text-sm text-toned sm:text-base">
-          在这里维护地块和树木档案，查看树级作业单，并推进 `pending -> in_progress -> completed / skipped` 状态流。
+          在这里维护地块与树木档案，查看树级作业任务，并按现场进度持续推进执行状态。
         </p>
       </section>
 
@@ -291,7 +299,7 @@ onMounted(async () => {
         color="success"
         variant="subtle"
         icon="i-lucide-badge-check"
-        title="处理进展"
+        title="已更新"
         :description="pageMessage"
       />
 
@@ -299,15 +307,15 @@ onMounted(async () => {
         <div class="space-y-6">
           <UCard variant="outline" :ui="{ body: 'p-5 sm:p-6' }">
             <template #header>
-              <div>
-                <h2 class="text-base font-semibold text-highlighted">
-                  地块档案
-                </h2>
-                <p class="mt-1 text-xs text-muted">
-                  建立整块地上下文后，识别页与决策页都会复用这里的地块选择。
-                </p>
-              </div>
-            </template>
+                <div>
+                  <h2 class="text-base font-semibold text-highlighted">
+                    地块档案
+                  </h2>
+                  <p class="mt-1 text-xs text-muted">
+                    建立地块上下文后，识别页和决策页都会复用这里的当前地块。
+                  </p>
+                </div>
+              </template>
 
             <div class="space-y-3">
               <input v-model="plotForm.name" class="w-full rounded-lg border border-default bg-default px-3 py-2 text-sm" placeholder="地块名称" />
@@ -346,15 +354,15 @@ onMounted(async () => {
 
           <UCard variant="outline" :ui="{ body: 'p-5 sm:p-6' }">
             <template #header>
-              <div>
-                <h2 class="text-base font-semibold text-highlighted">
-                  地块总览
-                </h2>
-                <p class="mt-1 text-xs text-muted">
-                  当前会话只围绕一个选中地块展开识别、决策与作业执行。
-                </p>
-              </div>
-            </template>
+                <div>
+                  <h2 class="text-base font-semibold text-highlighted">
+                    地块总览
+                  </h2>
+                  <p class="mt-1 text-xs text-muted">
+                    当前工作台围绕一个选中地块串起识别、决策与作业执行。
+                  </p>
+                </div>
+              </template>
 
             <div v-if="plots.length" class="space-y-3">
               <div
@@ -389,15 +397,15 @@ onMounted(async () => {
         <div class="space-y-6">
           <UCard variant="outline" :ui="{ body: 'p-5 sm:p-6' }">
             <template #header>
-              <div>
-                <h2 class="text-base font-semibold text-highlighted">
-                  树木档案
-                </h2>
-                <p class="mt-1 text-xs text-muted">
-                  每棵树记录行列和坐标，供地块级路线与树级作业单复用。
-                </p>
-              </div>
-            </template>
+                <div>
+                  <h2 class="text-base font-semibold text-highlighted">
+                    树木档案
+                  </h2>
+                  <p class="mt-1 text-xs text-muted">
+                    每棵树记录行列和坐标，供地块路线规划与树级任务复用。
+                  </p>
+                </div>
+              </template>
 
             <div class="space-y-3">
               <input v-model="treeForm.tree_code" class="w-full rounded-lg border border-default bg-default px-3 py-2 text-sm" placeholder="树木编码" />
@@ -430,8 +438,13 @@ onMounted(async () => {
                 />
               </div>
               <select v-model="treeForm.status" class="w-full rounded-lg border border-default bg-default px-3 py-2 text-sm">
-                <option value="active">active</option>
-                <option value="disabled">disabled</option>
+                <option
+                  v-for="option in treeStatusOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
               </select>
               <UButton
                 color="primary"
@@ -452,7 +465,7 @@ onMounted(async () => {
                     当前地块树清单
                   </h2>
                   <p class="mt-1 text-xs text-muted">
-                    可随时停用树档案，停用后它不会进入新的地块级路线。
+                    可随时停用树档案，停用后它不会进入新的采摘计划。
                   </p>
                 </div>
                 <UBadge :color="trees.length ? 'success' : 'neutral'" variant="soft">
@@ -484,7 +497,7 @@ onMounted(async () => {
                     color="neutral"
                     variant="outline"
                     :loading="updatingTreeId === tree.tree_id"
-                    :label="tree.status === 'active' ? '停用' : '启用'"
+                    :label="tree.status === 'active' ? '停用该树' : '重新启用'"
                     @click="handleToggleTreeStatus(tree)"
                   />
                 </div>
@@ -497,7 +510,7 @@ onMounted(async () => {
               variant="subtle"
               icon="i-lucide-tree-pine"
               title="当前地块还没有树档案"
-              description="先创建至少一棵树，再回到识别页绑定观测对象。"
+              description="先创建至少一棵树，再回到识别页绑定识别对象。"
             />
           </UCard>
         </div>
@@ -511,7 +524,7 @@ onMounted(async () => {
                     树级作业单
                   </h2>
                   <p class="mt-1 text-xs text-muted">
-                    `/decision` 生成的树级作业单会汇总到这里，可继续推进执行状态。
+                    决策页下发的树级作业任务会汇总到这里，按现场进度持续推进。
                   </p>
                 </div>
                 <UBadge :color="workOrders.length ? 'success' : 'neutral'" variant="soft">
@@ -522,11 +535,13 @@ onMounted(async () => {
 
             <div class="space-y-4">
               <select v-model="statusFilter" class="w-full rounded-lg border border-default bg-default px-3 py-2 text-sm">
-                <option value="all">全部状态</option>
-                <option value="pending">pending</option>
-                <option value="in_progress">in_progress</option>
-                <option value="completed">completed</option>
-                <option value="skipped">skipped</option>
+                <option
+                  v-for="option in workOrderStatusOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
               </select>
 
               <div class="grid grid-cols-2 gap-3 text-sm">
@@ -564,10 +579,10 @@ onMounted(async () => {
                     创建于 {{ formatDecisionTimestamp(item.created_at) }}
                   </p>
                   <p class="mt-1 text-xs text-muted">
-                    started_at: {{ item.started_at ? formatDecisionTimestamp(item.started_at) : '未开始' }}
+                    开始时间：{{ item.started_at ? formatDecisionTimestamp(item.started_at) : '未开始' }}
                   </p>
                   <p class="mt-1 text-xs text-muted">
-                    completed_at: {{ item.completed_at ? formatDecisionTimestamp(item.completed_at) : '未结束' }}
+                    完成时间：{{ item.completed_at ? formatDecisionTimestamp(item.completed_at) : '未结束' }}
                   </p>
 
                   <div class="mt-3 flex flex-wrap gap-2">
@@ -576,7 +591,7 @@ onMounted(async () => {
                       color="primary"
                       variant="outline"
                       :loading="updatingWorkOrderId === item.work_order_id"
-                      label="进入执行"
+                      label="开始执行"
                       @click="handleUpdateWorkOrder(item, 'in_progress')"
                     />
                     <UButton
@@ -584,7 +599,7 @@ onMounted(async () => {
                       color="success"
                       variant="outline"
                       :loading="updatingWorkOrderId === item.work_order_id"
-                      label="标记完成"
+                      label="完成任务"
                       @click="handleUpdateWorkOrder(item, 'completed')"
                     />
                     <UButton
@@ -592,7 +607,7 @@ onMounted(async () => {
                       color="warning"
                       variant="outline"
                       :loading="updatingWorkOrderId === item.work_order_id"
-                      label="标记跳过"
+                      label="记录跳过"
                       @click="handleUpdateWorkOrder(item, 'skipped')"
                     />
                   </div>
@@ -600,7 +615,7 @@ onMounted(async () => {
                   <textarea
                     v-model="skipReasonDrafts[item.work_order_id]"
                     class="mt-3 min-h-20 w-full rounded-lg border border-default bg-default px-3 py-2 text-sm"
-                    placeholder="若需要跳过，请先填写 skip_reason_note。"
+                    placeholder="若需要跳过，请填写现场说明（选填）。"
                   />
                 </div>
               </div>

@@ -78,6 +78,21 @@ describe('camera flow', () => {
     expect(pageSource).toContain(':current-frame="lastFrame"')
   })
 
+  it('uses product copy in the recognition summary and page shell', () => {
+    const summarySource = readFileSync(new URL('../../app/components/recognition/RecognitionLiveSummaryPanel.vue', import.meta.url), 'utf8')
+    const pageSource = readFileSync(new URL('../../app/pages/recognition/index.vue', import.meta.url), 'utf8')
+
+    expect(summarySource).toContain('识别能力说明')
+    expect(summarySource).toContain('树级识别记录归档')
+    expect(summarySource).not.toContain('当前主线已支持')
+    expect(summarySource).not.toContain('后续再继续补强')
+    expect(summarySource).not.toContain('summary 事件')
+
+    expect(pageSource).toContain('树级识别记录')
+    expect(pageSource).toContain('保存当前树记录')
+    expect(pageSource).not.toContain('归档当前树观测')
+  })
+
   it('starts camera and refreshes selected device after first permission grant', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.stubGlobal('localStorage', createMemoryStorage())

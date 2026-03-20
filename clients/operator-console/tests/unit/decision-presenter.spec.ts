@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildTreeStatusOptions,
+  buildWorkOrderStatusOptions,
+  formatConfidencePercent,
   formatDecisionSkipReason,
   formatDecisionTimestamp,
   formatDecisionZoneLabel,
@@ -25,8 +28,20 @@ describe('decision presenter', () => {
   })
 
   it('formats decision and operations statuses', () => {
-    expect(formatTreeRecommendationStatus('ready')).toBe('可进入决策')
-    expect(formatTreeStatus('disabled')).toBe('停用')
+    expect(formatTreeRecommendationStatus('ready')).toBe('已纳入计划')
+    expect(formatTreeStatus('disabled')).toBe('已停用')
     expect(formatWorkOrderStatus('in_progress')).toBe('执行中')
+  })
+
+  it('formats operator-facing confidence and status options', () => {
+    expect(formatConfidencePercent(0.876)).toBe('88%')
+    expect(buildTreeStatusOptions()).toEqual([
+      { value: 'active', label: '启用中' },
+      { value: 'disabled', label: '已停用' }
+    ])
+    expect(buildWorkOrderStatusOptions()[1]).toEqual({
+      value: 'in_progress',
+      label: '执行中'
+    })
   })
 })

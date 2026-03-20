@@ -10,7 +10,7 @@ import { formatTreeStatus, formatDecisionTimestamp } from '~/utils/decision-pres
 
 useSeoMeta({
   title: '识别',
-  description: '绑定地块与树木后进行实时识别，并归档树级观测。'
+  description: '绑定地块与树木后进行实时识别，并保存树级识别记录。'
 })
 
 const gatewayBase = useGatewayBase()
@@ -145,7 +145,7 @@ async function loadLatestObservation(treeId: string) {
     })
     latestObservation.value = response.items?.[0] || null
   } catch (error) {
-    latestObservationError.value = error instanceof Error ? error.message : '读取最近观测失败。'
+    latestObservationError.value = error instanceof Error ? error.message : '读取最近识别记录失败。'
   }
 }
 
@@ -187,7 +187,7 @@ async function archiveCurrentObservation() {
   assignmentError.value = ''
   latestObservationError.value = ''
   if (!selectedTreeId.value || !decisionSnapshot.snapshot.value) {
-    assignmentError.value = '需要先选择树木并获取一帧识别快照，才能归档树级观测。'
+    assignmentError.value = '需要先选择树木并获取一帧识别画面，才能保存当前树记录。'
     return
   }
 
@@ -203,7 +203,7 @@ async function archiveCurrentObservation() {
     })
     decisionSnapshot.markArchived()
   } catch (error) {
-    latestObservationError.value = error instanceof Error ? error.message : '保存树观测失败。'
+    latestObservationError.value = error instanceof Error ? error.message : '保存树级识别记录失败。'
   } finally {
     isObservationSaving.value = false
   }
@@ -249,13 +249,13 @@ onBeforeUnmount(() => {
     <div class="space-y-6">
       <section class="space-y-2">
         <p class="text-xs uppercase tracking-widest text-muted">
-          Recognition
+          识别
         </p>
         <h1 class="text-2xl font-semibold text-highlighted sm:text-3xl">
-          树级观测识别
+          树级识别记录
         </h1>
         <p class="text-sm text-toned sm:text-base">
-          先绑定当前地块与树木，再进行实时识别，并把最新快照归档为该树的观测记录。
+          先选定当前地块与树木，再进行实时识别，并把最新画面保存为该树的识别记录。
         </p>
       </section>
 
@@ -281,10 +281,10 @@ onBeforeUnmount(() => {
               <template #header>
                 <div class="flex items-center justify-between gap-3">
                   <h3 class="text-sm font-semibold text-highlighted">
-                    当前作业绑定
+                    当前识别对象
                   </h3>
                   <UBadge :color="canStartRecognition ? 'success' : 'neutral'" variant="soft">
-                    {{ canStartRecognition ? '已绑定' : '未完成绑定' }}
+                    {{ canStartRecognition ? '已选定' : '待选择' }}
                   </UBadge>
                 </div>
               </template>
@@ -319,7 +319,7 @@ onBeforeUnmount(() => {
                 color="warning"
                 variant="subtle"
                 icon="i-lucide-triangle-alert"
-                title="绑定提示"
+                title="选择提示"
                 :description="assignmentError"
               />
             </UCard>
@@ -331,7 +331,7 @@ onBeforeUnmount(() => {
                 icon="i-lucide-save"
                 :disabled="!decisionSnapshot.hasSnapshot || !selectedTreeId"
                 :loading="isObservationSaving"
-                label="归档当前树观测"
+                label="保存当前树记录"
                 @click="archiveCurrentObservation"
               />
               <UButton
@@ -339,7 +339,7 @@ onBeforeUnmount(() => {
                 icon="i-lucide-arrow-right"
                 :disabled="!selectedPlotId"
                 :loading="isObservationSaving"
-                label="进入整块地决策"
+                label="进入地块决策"
                 @click="archiveAndOpenDecision"
               />
               <UButton
@@ -366,14 +366,14 @@ onBeforeUnmount(() => {
               <div class="flex items-center justify-between gap-3">
                 <div>
                   <h2 class="text-base font-semibold text-highlighted">
-                    当前树观测
+                    当前树识别记录
                   </h2>
                   <p class="mt-1 text-xs text-muted">
-                    决策计划只读取已归档观测，不直接依赖匿名快照。
+                    地块计划只读取已保存的树级识别记录，不直接使用未保存的临时画面。
                   </p>
                 </div>
                 <UBadge :color="latestObservation ? 'success' : 'neutral'" variant="soft">
-                  {{ latestObservation ? '已归档' : '未归档' }}
+                  {{ latestObservation ? '已保存' : '未保存' }}
                 </UBadge>
               </div>
             </template>
@@ -393,7 +393,7 @@ onBeforeUnmount(() => {
                 color="error"
                 variant="subtle"
                 icon="i-lucide-triangle-alert"
-                title="观测异常"
+                title="记录异常"
                 :description="latestObservationError"
               />
 
@@ -410,8 +410,8 @@ onBeforeUnmount(() => {
                 v-if="latestObservation"
                 class="rounded-lg border border-default bg-default px-4 py-4 text-sm text-default"
               >
-                <p>观测编号：{{ latestObservation.observation_id }}</p>
-                <p class="mt-1">归档时间：{{ formatDecisionTimestamp(latestObservation.captured_at) }}</p>
+                <p>记录编号：{{ latestObservation.observation_id }}</p>
+                <p class="mt-1">保存时间：{{ formatDecisionTimestamp(latestObservation.captured_at) }}</p>
                 <p class="mt-1">检测目标：{{ latestObservation.detections.length }}</p>
                 <p class="mt-1">画面尺寸：{{ latestObservation.frame_width }} × {{ latestObservation.frame_height }}</p>
               </div>
@@ -421,8 +421,8 @@ onBeforeUnmount(() => {
                 color="neutral"
                 variant="subtle"
                 icon="i-lucide-scan-search"
-                title="当前树还没有归档观测"
-                description="开始识别后，点击“归档当前树观测”即可把当前快照提交到决策层。"
+                title="当前树还没有识别记录"
+                description="开始识别后，点击“保存当前树记录”即可把当前画面提交到地块决策。"
               />
             </div>
           </UCard>

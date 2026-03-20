@@ -8,7 +8,7 @@ const navItems = computed(() => buildTopNavItems(route.path))
 
 <template>
   <UHeader
-    title="Camellia Harvest"
+    title="油茶采摘助手"
     to="/"
     mode="slideover"
     :toggle="{ color: 'neutral', variant: 'ghost' }"
